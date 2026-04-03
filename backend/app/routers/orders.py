@@ -37,7 +37,7 @@ def create_order(
             buyer_id=current_user.id,
             seller_id=first_product.seller_id,
             total_amount=total,
-            status="pending"
+            status=OrderStatus.PENDING
         )
         db.add(order)
         db.flush()
@@ -63,5 +63,22 @@ def create_order(
 
 @router.get("/")
 def get_orders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    orders = db.query(Order).filter(Order.buyer_id == current_user.id).all()
-    return orders
+    orders = db.query(Order).filter(Order.buyer_id == current_user.id).order_by(Order.created_at.desc()).all()
+    return [
+        {
+            "id": o.id,
+            "total_amount": o.total_amount,
+            "status": o.status.value if o.status else "pending",
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "items": [
+                {
+                    "product_id": i.product_id,
+                    "product_name": i.product.name if i.product else "Unknown",
+                    "quantity": i.quantity,
+                    "price": i.price,
+                }
+                for i in o.items
+            ] if o.items else []
+        }
+        for o in orders
+    ]

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
+import api from '../api/client'
 
 interface User {
   id: number
@@ -18,8 +20,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'))
@@ -27,18 +27,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (token) {
-      fetch(`${API_URL}/users/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.id) {
-            setUser(data)
-          } else {
-            localStorage.removeItem('access_token')
-            setToken(null)
-          }
-        })
+      api.get('/users/me')
+        .then(res => setUser(res.data))
         .catch(() => {
           localStorage.removeItem('access_token')
           setToken(null)
@@ -50,34 +40,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token])
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.detail || 'Login failed')
-    
-    localStorage.setItem('access_token', data.access_token)
-    setToken(data.access_token)
-    
-    const userRes = await fetch(`${API_URL}/users/me`, {
-      headers: { 'Authorization': `Bearer ${data.access_token}` }
-    })
-    const userData = await userRes.json()
-    setUser(userData)
+    const res = await api.post('/auth/login', { email, password })
+    const { access_token } = res.data
+    localStorage.setItem('access_token', access_token)
+    setToken(access_token)
+    const userRes = await api.get('/users/me')
+    setUser(userRes.data)
+    toast.success('Logged in successfully!')
   }
 
   const register = async (name: string, email: string, password: string, role: string) => {
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, role })
-    })
-    if (!res.ok) {
-      const error = await res.json()
-      throw new Error(error.detail || 'Registration failed')
-    }
+    await api.post('/auth/register', { name, email, password, role })
+    toast.success('Registration successful! Please login.')
     await login(email, password)
   }
 
@@ -85,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('access_token')
     setToken(null)
     setUser(null)
+    toast.success('Logged out')
   }
 
   return (

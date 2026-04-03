@@ -1,116 +1,50 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import api from '../api/client'
 
 interface CartItem {
   id: number
   product_id: number
   quantity: number
-  product?: {
-    name: string
-    price: number
-    image_url: string
-  }
+  product?: { name: string; price: number; image_url: string }
 }
 
-interface CartContextType {
-  cart: CartItem[]
-  addToCart: (productId: number, quantity?: number) => Promise<void>
-  removeFromCart: (itemId: number) => Promise<void>
-  updateQuantity: (itemId: number, quantity: number) => Promise<void>
-  cartTotal: number
-  loading: boolean
-}
+const CartContext = createContext<any>(null)
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([])
-  const [loading, setLoading] = useState(false)
   const { token } = useAuth()
 
   const fetchCart = async () => {
-    if (!token) {
-      setCart([])
-      return
-    }
-    try {
-      const res = await fetch(`${API_URL}/cart`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
-      setCart(data.items || [])
-    } catch (err) {
-      console.error(err)
-    }
+    if (!token) { setCart([]); return }
+    const res = await api.get('/cart')
+    setCart(res.data.items || [])
   }
 
-  useEffect(() => {
-    fetchCart()
-  }, [token])
+  useEffect(() => { fetchCart() }, [token])
 
   const addToCart = async (productId: number, quantity: number = 1) => {
-    if (!token) {
-      window.location.href = '/login'
-      return
-    }
-    try {
-      await fetch(`${API_URL}/cart`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ product_id: productId, quantity })
-      })
-      await fetchCart()
-    } catch (err) {
-      console.error(err)
-    }
+    await api.post('/cart', { product_id: productId, quantity })
+    await fetchCart()
   }
 
   const removeFromCart = async (itemId: number) => {
-    try {
-      await fetch(`${API_URL}/cart/${itemId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      await fetchCart()
-    } catch (err) {
-      console.error(err)
-    }
+    await api.delete(`/cart/${itemId}`)
+    await fetchCart()
   }
 
   const updateQuantity = async (itemId: number, quantity: number) => {
-    try {
-      await fetch(`${API_URL}/cart/${itemId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ quantity })
-      })
-      await fetchCart()
-    } catch (err) {
-      console.error(err)
-    }
+    await api.put(`/cart/${itemId}`, { quantity })
+    await fetchCart()
   }
 
-  const cartTotal = cart.reduce((sum, item) => {
-    return sum + (item.product?.price || 0) * item.quantity
-  }, 0)
+  const cartTotal = cart.reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, cartTotal, loading }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, cartTotal }}>
       {children}
     </CartContext.Provider>
   )
 }
 
-export const useCart = () => {
-  const context = useContext(CartContext)
-  if (!context) throw new Error('useCart must be used within CartProvider')
-  return context
-}
+export const useCart = () => useContext(CartContext)

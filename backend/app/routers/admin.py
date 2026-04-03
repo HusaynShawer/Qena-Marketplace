@@ -29,7 +29,16 @@ def get_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db
 
 @router.get("/sellers/pending")
 def pending_sellers(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.query(Seller).filter(Seller.approved == False).all()
+    sellers = db.query(Seller).filter(Seller.approved == False).all()
+    return [
+        {
+            "id": s.id,
+            "shop_name": s.shop_name,
+            "shop_description": s.shop_description,
+            "user": {"id": s.user.id, "name": s.user.name, "email": s.user.email} if s.user else None
+        }
+        for s in sellers
+    ]
 
 @router.put("/sellers/{seller_id}/approve")
 def approve_seller(seller_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
