@@ -5,24 +5,20 @@ from app.database import engine, Base
 from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync
 from app.utils.logging import setup_logging
 
-# Create tables
 Base.metadata.create_all(bind=engine)
-
-# Setup logging
 setup_logging()
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update for production
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# Include routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(sellers.router, prefix="/sellers", tags=["sellers"])

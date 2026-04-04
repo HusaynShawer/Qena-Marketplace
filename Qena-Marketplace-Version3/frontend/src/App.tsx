@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage'
 import SellerDashboard from './pages/seller/Dashboard'
 import SellerProducts from './pages/seller/Products'
 import SellerOrders from './pages/seller/Orders'
+import AddProduct from './pages/seller/AddProduct'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminSellers from './pages/admin/Sellers'
 import AdminOrders from './pages/admin/Orders'
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/seller"          element={<SellerDashboard />} />
           <Route path="/seller/products" element={<SellerProducts />} />
           <Route path="/seller/orders"   element={<SellerOrders />} />
+          <Route path="/seller/products/new" element={<AddProduct />} />
           <Route path="/admin"           element={<AdminDashboard />} />
           <Route path="/admin/sellers"   element={<AdminSellers />} />
           <Route path="/admin/orders"    element={<AdminOrders />} />
