@@ -143,7 +143,7 @@ export default function HomePage() {
           {categories.map(({ name, icon, color, q }, i) => (
             <Link
               key={name}
-              to={`/products?search=${q}`}
+              to={`/products?category=${encodeURIComponent(name)}`}
               className={`flex flex-col items-center gap-3 p-4 rounded-2xl bg-gradient-to-br ${color} text-white hover:scale-105 hover:shadow-xl transition-all duration-300 animate-fade-in-up delay-${Math.min(i, 5) * 100}`}
             >
               <span className="text-3xl">{icon}</span>
