@@ -44,6 +44,7 @@ const AdminDashboard: React.FC = () => {
           <h3 className="font-semibold">Approve Sellers</h3>
           <p className="text-sm opacity-90">{stats.pending_sellers} pending applications</p>
         </Link>
+        <Link to="/admin/payments" className="bg-yellow-500 text-white p-6 rounded-lg text-center hover:bg-yellow-600 transition"><div className="text-3xl mb-2">💰</div><h3 className="font-semibold text-lg">المدفوعات</h3><p className="text-sm opacity-90">طلبات السحب والمحافظ</p></Link>
         <Link to="/admin/orders" className="bg-purple-600 text-white p-6 rounded-lg text-center hover:bg-purple-700">
           <div className="text-3xl mb-2">📦</div>
           <h3 className="font-semibold">All Orders</h3>

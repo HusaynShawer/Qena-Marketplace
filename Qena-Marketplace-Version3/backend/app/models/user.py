@@ -21,4 +21,4 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # علاقة مع Seller (one-to-one)
-    seller_profile = relationship("Seller", back_populates="user", uselist=False)
+    seller_profile = relationship("Seller", back_populates="user", uselist=False)# Wallet and withdrawal models are in separate files

@@ -15,14 +15,16 @@ import SellerDashboard from './pages/seller/Dashboard'
 import SellerProducts from './pages/seller/Products'
 import SellerOrders from './pages/seller/Orders'
 import AddProduct from './pages/seller/AddProduct'
+import SellerWallet from './pages/seller/Wallet'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminSellers from './pages/admin/Sellers'
 import AdminOrders from './pages/admin/Orders'
+import AdminPayments from './pages/admin/Payments'
 
 function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
-      <div className="text-8xl mb-6 animate-float">🛍️</div>
+      <div className="text-8xl mb-6">🛍️</div>
       <h1 className="text-4xl font-bold text-slate-800 mb-3">404 — Page Not Found</h1>
       <p className="text-slate-500 mb-8">Looks like you wandered off the marketplace!</p>
       <a href="/" className="btn-primary">Back to Home</a>
@@ -36,23 +38,25 @@ export default function App() {
       <Navbar />
       <main className="flex-1">
         <Routes>
-          <Route path="/"                element={<HomePage />} />
-          <Route path="/login"           element={<LoginPage />} />
-          <Route path="/register"        element={<RegisterPage />} />
-          <Route path="/products"        element={<ProductsPage />} />
-          <Route path="/products/:id"    element={<ProductDetailPage />} />
-          <Route path="/cart"            element={<CartPage />} />
-          <Route path="/checkout"        element={<CheckoutPage />} />
-          <Route path="/orders"          element={<OrdersPage />} />
-          <Route path="/profile"         element={<ProfilePage />} />
-          <Route path="/seller"          element={<SellerDashboard />} />
-          <Route path="/seller/products" element={<SellerProducts />} />
-          <Route path="/seller/orders"   element={<SellerOrders />} />
-          <Route path="/seller/products/new" element={<AddProduct />} />
-          <Route path="/admin"           element={<AdminDashboard />} />
-          <Route path="/admin/sellers"   element={<AdminSellers />} />
-          <Route path="/admin/orders"    element={<AdminOrders />} />
-          <Route path="*"               element={<NotFound />} />
+          <Route path="/"                      element={<HomePage />} />
+          <Route path="/login"                 element={<LoginPage />} />
+          <Route path="/register"              element={<RegisterPage />} />
+          <Route path="/products"              element={<ProductsPage />} />
+          <Route path="/products/:id"          element={<ProductDetailPage />} />
+          <Route path="/cart"                  element={<CartPage />} />
+          <Route path="/checkout"              element={<CheckoutPage />} />
+          <Route path="/orders"                element={<OrdersPage />} />
+          <Route path="/profile"               element={<ProfilePage />} />
+          <Route path="/seller"                element={<SellerDashboard />} />
+          <Route path="/seller/products"       element={<SellerProducts />} />
+          <Route path="/seller/products/new"   element={<AddProduct />} />
+          <Route path="/seller/orders"         element={<SellerOrders />} />
+          <Route path="/seller/wallet"         element={<SellerWallet />} />
+          <Route path="/admin"                 element={<AdminDashboard />} />
+          <Route path="/admin/sellers"         element={<AdminSellers />} />
+          <Route path="/admin/orders"          element={<AdminOrders />} />
+          <Route path="/admin/payments"        element={<AdminPayments />} />
+          <Route path="*"                      element={<NotFound />} />
         </Routes>
       </main>
       <Footer />

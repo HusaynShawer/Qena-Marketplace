@@ -49,6 +49,7 @@ def create_order(
         product.stock -= item.quantity
 
     db.query(Cart).filter(Cart.user_id == current_user.id).delete()
+    credit_seller_wallet(first_product.seller_id, total, order.id, db)
     db.commit()
 
     return {"message": "Order created", "order_id": order.id}
@@ -97,3 +98,22 @@ def update_order_status(
     order.status = update.status
     db.commit()
     return {"message": "Status updated"}
+
+def credit_seller_wallet(seller_id: int, amount: float, order_id: int, db: Session):
+    """إضافة فلوس لمحفظة البائع لما يتعمل أوردر"""
+    from app.models.wallet import Wallet, WalletTransaction, TransactionType
+    wallet = db.query(Wallet).filter(Wallet.seller_id == seller_id).first()
+    if not wallet:
+        wallet = Wallet(seller_id=seller_id, balance=0.0, total_earned=0.0)
+        db.add(wallet)
+        db.flush()
+    wallet.balance += amount
+    wallet.total_earned += amount
+    tx = WalletTransaction(
+        wallet_id=wallet.id,
+        type=TransactionType.CREDIT,
+        amount=amount,
+        description=f"أرباح أوردر #{order_id}",
+        order_id=order_id
+    )
+    db.add(tx)

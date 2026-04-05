@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync
+from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync, wallet
 from app.utils.logging import setup_logging
 
 Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(sync.router, prefix="/sync", tags=["sync"])
+app.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
 
 @app.get("/")
 def read_root():
