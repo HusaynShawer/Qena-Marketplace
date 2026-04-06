@@ -83,3 +83,36 @@ def get_seller_orders(
         }
         for o in orders
     ]
+@router.get("/{seller_id}")
+def get_seller_public(seller_id: int, db: Session = Depends(get_db)):
+    seller = db.query(Seller).filter(Seller.id == seller_id, Seller.approved == True).first()
+    if not seller:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+    return {
+        "id": seller.id,
+        "shop_name": seller.shop_name,
+        "shop_description": seller.shop_description,
+        "seller_name": seller.user.name if seller.user else "Unknown",
+    }
+
+@router.get("/{seller_id}/products")
+def get_seller_products(seller_id: int, db: Session = Depends(get_db)):
+    from app.models.product import Product
+    products = db.query(Product).filter(
+        Product.seller_id == seller_id,
+        Product.is_active == True
+    ).order_by(Product.created_at.desc()).all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "price": p.price,
+            "stock": p.stock,
+            "image_url": p.image_url,
+            "category": p.category.name if p.category else None,
+            "seller_id": p.seller_id,
+            "is_active": p.is_active,
+        }
+        for p in products
+    ]
