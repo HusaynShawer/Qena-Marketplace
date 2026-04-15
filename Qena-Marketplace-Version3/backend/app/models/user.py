@@ -19,6 +19,11 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.BUYER)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # علاقة مع Seller (one-to-one)
-    seller_profile = relationship("Seller", back_populates="user", uselist=False)# Wallet and withdrawal models are in separate files
+
+    # ── Reset password fields ─────────────────────────────────
+    reset_otp = Column(String, nullable=True)
+    reset_otp_expiry = Column(DateTime(timezone=True), nullable=True)
+    # ─────────────────────────────────────────────────────────
+
+    seller_profile = relationship("Seller", back_populates="user", uselist=False)
+    # Wallet and withdrawal models are in separate files

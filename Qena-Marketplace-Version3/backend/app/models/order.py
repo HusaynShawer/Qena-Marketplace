@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -8,6 +8,7 @@ class OrderStatus(str, enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     SHIPPED = "shipped"
+    OUT_FOR_DELIVERY = "out_for_delivery"
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
 
@@ -21,7 +22,14 @@ class Order(Base):
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
+    # ── Buyer delivery info (filled at checkout) ──────────────
+    buyer_phone = Column(String, nullable=True)
+    buyer_address = Column(Text, nullable=True)
+    buyer_city = Column(String, nullable=True)
+    buyer_notes = Column(Text, nullable=True)
+    # ─────────────────────────────────────────────────────────
+
     buyer = relationship("User")
     seller = relationship("Seller")
     items = relationship("OrderItem", back_populates="order")
