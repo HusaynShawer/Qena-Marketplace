@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync, wallet
+from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync, wallet,categories
 from app.utils.logging import setup_logging
 
 Base.metadata.create_all(bind=engine)
@@ -54,7 +54,7 @@ app.include_router(reviews.router,  prefix="/reviews",  tags=["reviews"])
 app.include_router(admin.router,    prefix="/admin",    tags=["admin"])
 app.include_router(sync.router,     prefix="/sync",     tags=["sync"])
 app.include_router(wallet.router,   prefix="/wallet",   tags=["wallet"])
-
+app.include_router(categories.router, prefix="/categories", tags=["categories"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Qena Marketplace API"}

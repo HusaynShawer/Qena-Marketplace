@@ -13,11 +13,13 @@ import CheckoutPage from './pages/CheckoutPage'
 import OrdersPage from './pages/OrdersPage'
 import ProfilePage from './pages/ProfilePage'
 import VendorPage from './pages/VendorPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import SellerDashboard from './pages/seller/Dashboard'
 import SellerProducts from './pages/seller/Products'
 import SellerOrders from './pages/seller/Orders'
 import AddProduct from './pages/seller/AddProduct'
 import SellerWallet from './pages/seller/Wallet'
+import SellerSetup from './pages/seller/Setup'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminSellers from './pages/admin/Sellers'
 import AdminOrders from './pages/admin/Orders'
@@ -26,7 +28,11 @@ import AdminPayments from './pages/admin/Payments'
 // ── Guards ──
 function RequireAuth({ roles }: { roles?: string[] }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"/></div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"/>
+    </div>
+  )
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
   return <Outlet />
@@ -50,19 +56,22 @@ export default function App() {
       <main className="flex-1">
         <Routes>
           {/* Public */}
-          <Route path="/"               element={<HomePage />} />
-          <Route path="/login"          element={<LoginPage />} />
-          <Route path="/register"       element={<RegisterPage />} />
-          <Route path="/products"       element={<ProductsPage />} />
-          <Route path="/products/:id"   element={<ProductDetailPage />} />
-          <Route path="/vendor/:id"     element={<VendorPage />} />
-          <Route path="/cart"           element={<CartPage />} />
+          <Route path="/"                    element={<HomePage />} />
+          <Route path="/login"               element={<LoginPage />} />
+          <Route path="/register"            element={<RegisterPage />} />
+          <Route path="/forgot-password"     element={<ForgotPasswordPage />} />
+          <Route path="/products"            element={<ProductsPage />} />
+          <Route path="/products/:id"        element={<ProductDetailPage />} />
+          <Route path="/vendor/:id"          element={<VendorPage />} />
+          <Route path="/cart"                element={<CartPage />} />
 
-          {/* Logged in users only */}
+          {/* Logged-in users */}
           <Route element={<RequireAuth />}>
-            <Route path="/checkout"    element={<CheckoutPage />} />
-            <Route path="/orders"      element={<OrdersPage />} />
-            <Route path="/profile"     element={<ProfilePage />} />
+            <Route path="/checkout"   element={<CheckoutPage />} />
+            <Route path="/orders"     element={<OrdersPage />} />
+            <Route path="/profile"    element={<ProfilePage />} />
+            {/* Seller setup — any logged-in user can apply */}
+            <Route path="/seller/setup" element={<SellerSetup />} />
           </Route>
 
           {/* Sellers only */}
@@ -76,10 +85,10 @@ export default function App() {
 
           {/* Admins only */}
           <Route element={<RequireAuth roles={['admin']} />}>
-            <Route path="/admin"               element={<AdminDashboard />} />
-            <Route path="/admin/sellers"       element={<AdminSellers />} />
-            <Route path="/admin/orders"        element={<AdminOrders />} />
-            <Route path="/admin/payments"      element={<AdminPayments />} />
+            <Route path="/admin"          element={<AdminDashboard />} />
+            <Route path="/admin/sellers"  element={<AdminSellers />} />
+            <Route path="/admin/orders"   element={<AdminOrders />} />
+            <Route path="/admin/payments" element={<AdminPayments />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

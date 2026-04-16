@@ -14,6 +14,7 @@ export default function CheckoutPage() {
   const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '' })
   const [vfPhone, setVfPhone] = useState('')
   const [form, setForm] = useState({ firstName: '', lastName: '', address: '', city: '', phone: '' })
+  const [error, setError] = useState('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -22,23 +23,34 @@ export default function CheckoutPage() {
   const formatExpiry = (val: string) => val.replace(/\D/g, '').slice(0, 4).replace(/(.{2})/, '$1/')
 
   const handlePlaceOrder = async () => {
+    setError('')
     if (!form.firstName || !form.lastName || !form.address || !form.city || !form.phone) {
-      alert('Please fill in all shipping information'); return
+      setError('Please fill in all shipping information')
+      return
     }
-    if (cart.length === 0) { alert('Your cart is empty'); return }
-    if (paymentMethod !== 'cod') { setStep('payment'); return }
+    if (cart.length === 0) {
+      setError('Your cart is empty')
+      return
+    }
+    if (paymentMethod !== 'cod') {
+      setStep('payment')
+      return
+    }
     await submitOrder('cod')
   }
 
   const handlePayNow = async () => {
+    setError('')
     if (paymentMethod === 'card') {
       if (!cardForm.number || !cardForm.expiry || !cardForm.cvv || !cardForm.name) {
-        alert('Please fill in all card details'); return
+        setError('Please fill in all card details')
+        return
       }
     }
     if (paymentMethod === 'vodafone') {
       if (!vfPhone || vfPhone.length < 11) {
-        alert('Please enter a valid Vodafone Cash number'); return
+        setError('Please enter a valid Vodafone Cash number')
+        return
       }
     }
     await submitOrder(paymentMethod)
@@ -46,16 +58,32 @@ export default function CheckoutPage() {
 
   const submitOrder = async (method: string) => {
     setLoading(true)
+    setError('')
     try {
-      // Simulate payment processing
+      // Simulate payment processing for non-COD
       if (method !== 'cod') {
         await new Promise(r => setTimeout(r, 2000))
       }
-      await api.post('/orders/', { payment_method: method })
+
+      // ✅ FIX: send the actual shipping form fields the backend expects
+      await api.post('/orders/', {
+        buyer_phone: form.phone,
+        buyer_address: form.address,
+        buyer_city: form.city,
+        buyer_notes: '',
+      })
+
       await clearCart()
       setStep('success')
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Failed to place order')
+      // ✅ FIX: handle both string and array detail responses
+      const detail = e?.response?.data?.detail
+      if (Array.isArray(detail)) {
+        // FastAPI validation errors — show the first one clearly
+        setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '))
+      } else {
+        setError(detail || 'Failed to place order. Please try again.')
+      }
     }
     setLoading(false)
   }
@@ -72,7 +100,7 @@ export default function CheckoutPage() {
         {paymentMethod !== 'cod' && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-green-700">
             💰 Payment of <strong>{cartTotal.toLocaleString()} EGP</strong> confirmed!
-            <br/>Funds transferred to marketplace wallet.
+            <br />Funds transferred to marketplace wallet.
           </div>
         )}
         {paymentMethod === 'cod' && (
@@ -111,6 +139,12 @@ export default function CheckoutPage() {
           <p className="text-gray-500 text-sm mt-1">Simulation Mode 🔧</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Amount */}
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 text-center">
           <p className="text-sm text-gray-500 mb-1">Amount to pay</p>
@@ -124,7 +158,7 @@ export default function CheckoutPage() {
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Card Number</label>
               <input
                 value={cardForm.number}
-                onChange={e => setCardForm({...cardForm, number: formatCard(e.target.value)})}
+                onChange={e => setCardForm({ ...cardForm, number: formatCard(e.target.value) })}
                 placeholder="1234 5678 9012 3456"
                 className="w-full border-2 rounded-xl px-4 py-3 font-mono text-lg focus:outline-none focus:border-orange-400 tracking-widest"
                 maxLength={19}
@@ -134,7 +168,7 @@ export default function CheckoutPage() {
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Cardholder Name</label>
               <input
                 value={cardForm.name}
-                onChange={e => setCardForm({...cardForm, name: e.target.value})}
+                onChange={e => setCardForm({ ...cardForm, name: e.target.value })}
                 placeholder="Ahmed Mohamed"
                 className="w-full border-2 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400"
               />
@@ -144,7 +178,7 @@ export default function CheckoutPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Expiry</label>
                 <input
                   value={cardForm.expiry}
-                  onChange={e => setCardForm({...cardForm, expiry: formatExpiry(e.target.value)})}
+                  onChange={e => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })}
                   placeholder="MM/YY"
                   className="w-full border-2 rounded-xl px-4 py-3 font-mono focus:outline-none focus:border-orange-400"
                   maxLength={5}
@@ -154,7 +188,7 @@ export default function CheckoutPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">CVV</label>
                 <input
                   value={cardForm.cvv}
-                  onChange={e => setCardForm({...cardForm, cvv: e.target.value.replace(/\D/g,'').slice(0,3)})}
+                  onChange={e => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0, 3) })}
                   placeholder="123"
                   type="password"
                   className="w-full border-2 rounded-xl px-4 py-3 font-mono focus:outline-none focus:border-orange-400"
@@ -175,12 +209,13 @@ export default function CheckoutPage() {
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Vodafone Cash Number</label>
               <input
                 value={vfPhone}
-                onChange={e => setVfPhone(e.target.value.replace(/\D/g,'').slice(0,11))}
-                placeholder="01xxxxxxxxx"
-                className="w-full border-2 rounded-xl px-4 py-3 font-mono text-lg focus:outline-none focus:border-red-400"
+                onChange={e => setVfPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                placeholder="010XXXXXXXX"
+                className="w-full border-2 rounded-xl px-4 py-3 font-mono text-lg focus:outline-none focus:border-orange-400 tracking-widest"
+                maxLength={11}
               />
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 space-y-1">
               <p className="font-bold mb-1">📱 How it works:</p>
               <p>1. Enter your Vodafone Cash number</p>
               <p>2. You'll receive an OTP on your phone</p>
@@ -199,8 +234,8 @@ export default function CheckoutPage() {
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
               Processing Payment...
             </span>
@@ -233,11 +268,10 @@ export default function CheckoutPage() {
                   { id: 'vodafone', icon: '📱', label: 'Vodafone Cash', sub: 'Mobile wallet' },
                 ].map(m => (
                   <button key={m.id} onClick={() => setPaymentMethod(m.id as PaymentMethod)}
-                    className={`p-4 rounded-xl border-2 text-left transition ${
-                      paymentMethod === m.id
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}>
+                    className={`p-4 rounded-xl border-2 text-left transition ${paymentMethod === m.id
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}>
                     <div className="text-2xl mb-2">{m.icon}</div>
                     <div className="font-bold text-xs">{m.label}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{m.sub}</div>
@@ -247,7 +281,6 @@ export default function CheckoutPage() {
                   </button>
                 ))}
               </div>
-
               {paymentMethod !== 'cod' && (
                 <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-600">
                   🔧 <strong>Simulation Mode:</strong> No real money will be charged. For testing only.
@@ -258,6 +291,13 @@ export default function CheckoutPage() {
             {/* Shipping */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="text-xl font-bold mb-4">📦 Shipping Information</h2>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { name: 'firstName', placeholder: 'First Name *' },
@@ -321,7 +361,7 @@ export default function CheckoutPage() {
                   <span>Payment</span>
                   <span className="font-medium text-xs">
                     {paymentMethod === 'cod' ? '💵 Cash on Delivery' :
-                     paymentMethod === 'card' ? '💳 Card' : '📱 Vodafone Cash'}
+                      paymentMethod === 'card' ? '💳 Card' : '📱 Vodafone Cash'}
                   </span>
                 </div>
               </div>
@@ -335,7 +375,16 @@ export default function CheckoutPage() {
               </div>
               <button onClick={handlePlaceOrder} disabled={loading || cart.length === 0}
                 className="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-lg hover:bg-orange-700 transition disabled:opacity-50 active:scale-95">
-                {paymentMethod === 'cod' ? '📦 Place Order (COD)' : '💳 Continue to Payment →'}
+                {loading
+                  ? <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Placing Order...
+                    </span>
+                  : paymentMethod === 'cod' ? '📦 Place Order (COD)' : '💳 Continue to Payment →'
+                }
               </button>
               <p className="text-xs text-gray-400 text-center mt-3">
                 🔒 Your information is secure

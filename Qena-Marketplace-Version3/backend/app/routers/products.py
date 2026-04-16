@@ -35,15 +35,23 @@ def serialize_product(p, include_seller=False):
     return data
 
 @router.get("/seller/my-products")
-def get_my_products(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_my_products(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     seller = db.query(Seller).filter(Seller.user_id == current_user.id).first()
     if not seller:
-        raise HTTPException(status_code=403, detail="Not a seller")
+        raise HTTPException(status_code=403, detail="No seller profile found. Please apply first.")
     products = db.query(Product).filter(Product.seller_id == seller.id).all()
     return [serialize_product(p) for p in products]
 
 @router.get("/")
-def list_products(skip: int = 0, limit: int = 100, search: Optional[str] = None, db: Session = Depends(get_db)):
+def list_products(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
     query = db.query(Product).filter(Product.is_active == True)
     if search:
         query = query.filter(Product.name.ilike(f"%{search}%"))
@@ -52,7 +60,10 @@ def list_products(skip: int = 0, limit: int = 100, search: Optional[str] = None,
 
 @router.get("/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(Product).filter(Product.id == product_id, Product.is_active == True).first()
+    product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.is_active == True
+    ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return serialize_product(product, include_seller=True)
@@ -82,11 +93,24 @@ async def create_product(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Must be a seller role
     if current_user.role.value.lower() != "seller":
         raise HTTPException(status_code=403, detail="Only sellers can add products")
+
+    # Must have a seller profile
     seller = db.query(Seller).filter(Seller.user_id == current_user.id).first()
-    if not seller or not seller.approved:
-        raise HTTPException(status_code=403, detail="Seller not approved")
+    if not seller:
+        raise HTTPException(
+            status_code=403,
+            detail="No seller profile found. Go to /seller/setup to apply."
+        )
+
+    # Must be approved by admin
+    if not seller.approved:
+        raise HTTPException(
+            status_code=403,
+            detail="Your seller account is pending admin approval. You cannot add products yet."
+        )
 
     image_url = None
     if image:
@@ -95,9 +119,13 @@ async def create_product(
         image_url = f"data:{image.content_type};base64,{b64}"
 
     db_product = Product(
-        name=name, description=description, price=price,
-        stock=stock, category_id=category_id,
-        image_url=image_url, seller_id=seller.id
+        name=name,
+        description=description,
+        price=price,
+        stock=stock,
+        category_id=category_id,
+        image_url=image_url,
+        seller_id=seller.id
     )
     db.add(db_product)
     db.commit()
@@ -119,7 +147,11 @@ async def update_product(
     seller = db.query(Seller).filter(Seller.user_id == current_user.id).first()
     if not seller:
         raise HTTPException(status_code=403, detail="Not a seller")
-    db_product = db.query(Product).filter(Product.id == product_id, Product.seller_id == seller.id).first()
+
+    db_product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.seller_id == seller.id
+    ).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -138,13 +170,22 @@ async def update_product(
     return serialize_product(db_product)
 
 @router.delete("/{product_id}")
-def delete_product(product_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_product(
+    product_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     seller = db.query(Seller).filter(Seller.user_id == current_user.id).first()
     if not seller:
         raise HTTPException(status_code=403, detail="Not a seller")
-    db_product = db.query(Product).filter(Product.id == product_id, Product.seller_id == seller.id).first()
+
+    db_product = db.query(Product).filter(
+        Product.id == product_id,
+        Product.seller_id == seller.id
+    ).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
+
     db_product.is_active = False
     db.commit()
     return {"message": "Product deleted"}
