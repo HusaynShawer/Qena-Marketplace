@@ -5,14 +5,14 @@ import ProductCard from '../components/ProductCard'
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const categories = [
-  { name: 'Electronics',   icon: '📱', color: 'from-blue-500 to-blue-600',   q: 'electronics' },
-  { name: 'Clothing',      icon: '👗', color: 'from-pink-500 to-rose-500',    q: 'clothing' },
-  { name: 'Home & Garden', icon: '🏡', color: 'from-green-500 to-emerald-500',q: 'home' },
-  { name: 'Books',         icon: '📚', color: 'from-purple-500 to-violet-500',q: 'books' },
-  { name: 'Sports',        icon: '⚽', color: 'from-orange-500 to-orange-600',q: 'sports' },
-  { name: 'Food',          icon: '🍎', color: 'from-red-500 to-red-600',      q: 'food' },
-  { name: 'Toys',          icon: '🧸', color: 'from-yellow-500 to-amber-500', q: 'toys' },
-  { name: 'Beauty',        icon: '💄', color: 'from-fuchsia-500 to-pink-500', q: 'beauty' },
+  { name: 'Electronics',       icon: '📱', color: 'from-blue-500 to-blue-600' },
+  { name: 'Clothing & Fashion', icon: '👗', color: 'from-pink-500 to-rose-500' },
+  { name: 'Home & Garden',     icon: '🏡', color: 'from-green-500 to-emerald-500' },
+  { name: 'Books & Education', icon: '📚', color: 'from-purple-500 to-violet-500' },
+  { name: 'Sports & Hobbies',  icon: '⚽', color: 'from-orange-500 to-orange-600' },
+  { name: 'Food & Groceries',  icon: '🍎', color: 'from-red-500 to-red-600' },
+  { name: 'Cars & Vehicles',   icon: '🚗', color: 'from-yellow-500 to-amber-500' },
+  { name: 'Other',             icon: '🛍️', color: 'from-fuchsia-500 to-pink-500' },
 ]
 
 const features = [

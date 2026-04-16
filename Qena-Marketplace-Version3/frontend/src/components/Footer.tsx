@@ -66,7 +66,7 @@ export default function Footer() {
           <Link to="/register" className="btn-primary !py-2.5 !px-5 !text-sm">Start Selling →</Link>
           <div className="mt-5 space-y-2 text-sm">
             <div className="flex items-center gap-2 text-slate-400"><span>📧</span><span>support@qenamarket.com</span></div>
-            <div className="flex items-center gap-2 text-slate-400"><span>📞</span><span>+20 96 XXX XXXX</span></div>
+            <div className="flex items-center gap-2 text-slate-400"><span>📞</span><span>+201097926202</span></div>
           </div>
         </div>
       </div>
