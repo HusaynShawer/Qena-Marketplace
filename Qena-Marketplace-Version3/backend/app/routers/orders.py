@@ -27,6 +27,16 @@ class CheckoutRequest(BaseModel):
 
 VALID_STATUSES = [s.value for s in OrderStatus]
 
+# Terminal states (delivered, cancelled) have no outgoing transitions,
+# so once an order reaches them the seller can no longer change the status.
+SELLER_ALLOWED_TRANSITIONS = {
+    "pending": ["confirmed", "cancelled"],
+    "confirmed": ["shipped", "cancelled"],
+    "shipped": ["delivered"],
+    "delivered": [],
+    "cancelled": [],
+}
+
 def _order_dict(o: Order):
     return {
         "id": o.id,
@@ -49,6 +59,16 @@ def _order_dict(o: Order):
     }
 
 # ── Buyer endpoints ────────────────────────────────────────────────────────────
+
+def _restore_stock(order: Order, db: Session):
+    """Return all items to stock when an order is cancelled."""
+    for item in order.items:
+        product = db.query(Product).filter(
+            Product.id == item.product_id,
+        ).with_for_update().first()
+        if product:
+            product.stock += item.quantity
+
 
 @router.post("/")
 def create_order(
@@ -205,7 +225,13 @@ def update_order_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Seller updates the delivery status of their order."""
+    """Seller updates the delivery status of their order.
+
+    Transitions are restricted by SELLER_ALLOWED_TRANSITIONS: once an
+    order is 'delivered' or 'cancelled' it becomes terminal and cannot
+    be changed further. If the new status is 'cancelled', stock for
+    the order's items is restored.
+    """
     from app.models.seller import Seller
 
     if update.status not in VALID_STATUSES:
@@ -225,6 +251,21 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    current_status = order.status.value if order.status else "pending"
+    allowed = SELLER_ALLOWED_TRANSITIONS.get(current_status, [])
+
+    if update.status not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot change status from '{current_status}' to "
+                f"'{update.status}'. Allowed: {allowed or 'none (terminal state)'}"
+            ),
+        )
+
+    if update.status == "cancelled":
+        _restore_stock(order, db)
+
     order.status = update.status
     db.commit()
     return {"message": "Status updated", "new_status": update.status}
@@ -233,7 +274,7 @@ def update_order_status(
 # ── Wallet helper (unchanged) ──────────────────────────────────────────────────
 
 def credit_seller_wallet(seller_id: int, amount: float, order_id: int, db: Session):
-    """إضافة فلوس لمحفظة البائع لما يتعمل أوردر"""
+    """Credit seller's wallet for a completed order."""
     from app.models.wallet import Wallet, WalletTransaction, TransactionType
     wallet = db.query(Wallet).filter(Wallet.seller_id == seller_id).first()
     if not wallet:
@@ -246,7 +287,7 @@ def credit_seller_wallet(seller_id: int, amount: float, order_id: int, db: Sessi
         wallet_id=wallet.id,
         type=TransactionType.CREDIT,
         amount=amount,
-        description=f"أرباح أوردر #{order_id}",
+        description=f" revenu {order_id}",
         order_id=order_id,
     )
     db.add(tx)

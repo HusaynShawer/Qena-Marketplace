@@ -91,6 +91,7 @@ export default function Footer() {
       <div className="border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-slate-500">
           <p>© 2024 QenaMarket. All rights reserved.</p>
+          <p>Developed by <a href="https://shawer.org" target="_blank" className="hover:text-orange-400 transition-colors">Shawer.org</a></p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-orange-400 transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-orange-400 transition-colors">Terms of Service</a>
