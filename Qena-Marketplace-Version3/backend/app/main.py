@@ -4,12 +4,15 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.config import settings
-from app.database import engine, Base
-from app.routers import auth, users, sellers, products, cart, orders, reviews, admin, sync, wallet, categories
+from app.core.config import settings
+from app.core.database import engine, Base
 from app.utils.logging import setup_logging
+from app.routers.api import api_router
+from sqlalchemy.ext.asyncio import AsyncSession
 
-Base.metadata.create_all(bind=engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 setup_logging()
 
 # ── Rate limiter (uses memory by default; swap storage_uri to Redis in prod) ──
@@ -42,18 +45,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
-# ── Routers ───────────────────────────────────────────────────────────────────
-app.include_router(auth.router,       prefix="/auth",       tags=["auth"])
-app.include_router(users.router,      prefix="/users",      tags=["users"])
-app.include_router(sellers.router,    prefix="/sellers",    tags=["sellers"])
-app.include_router(products.router,   prefix="/products",   tags=["products"])
-app.include_router(cart.router,       prefix="/cart",       tags=["cart"])
-app.include_router(orders.router,     prefix="/orders",     tags=["orders"])
-app.include_router(reviews.router,    prefix="/reviews",    tags=["reviews"])
-app.include_router(admin.router,      prefix="/admin",      tags=["admin"])
-app.include_router(sync.router,       prefix="/sync",       tags=["sync"])
-app.include_router(wallet.router,     prefix="/wallet",     tags=["wallet"])
-app.include_router(categories.router, prefix="/categories", tags=["categories"])
+# ── Include API router ─────────────────────────────────────────────────────────
+app.include_router(api_router, prefix="/api")
 
 @app.get("/")
 def read_root():

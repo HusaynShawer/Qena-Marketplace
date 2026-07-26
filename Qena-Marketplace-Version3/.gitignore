@@ -6,3 +6,7 @@ instance/
 venv/
 # Ignore database files
 *.db
+/qmpenv
+qmpenv/
+qmpenv
+.qmpenv

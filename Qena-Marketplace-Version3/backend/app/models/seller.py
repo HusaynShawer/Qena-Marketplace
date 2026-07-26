@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.database import Base
+from app.core.database import Base
 
 
 class Seller(Base):
@@ -13,7 +13,7 @@ class Seller(Base):
     shop_description = Column(Text, nullable=True)
     approved = Column(Boolean, default=False)
     approved_at = Column(DateTime(timezone=True), nullable=True)
-
+    phone = Column(String, nullable=False)
     # ── Suspension ────────────────────────────────────────────────────────────
     is_suspended = Column(Boolean, default=False, nullable=False)
     suspended_at = Column(DateTime(timezone=True), nullable=True)

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.database import Base
+from app.core.database import Base
 import enum
 
 class TransactionType(enum.Enum):
@@ -39,11 +39,11 @@ class WithdrawalRequest(Base):
     id = Column(Integer, primary_key=True)
     seller_id = Column(Integer, ForeignKey("sellers.id"))
     amount = Column(Float)
-    method = Column(String)        # فودافون كاش / انستاباي
-    account_number = Column(String) # رقم المحفظة
+    method = Column(String)
+    account_number = Column(String)
     status = Column(Enum(WithdrawalStatus), default=WithdrawalStatus.PENDING)
     admin_note = Column(String, nullable=True)
-    transaction_ref = Column(String, nullable=True)  # رقم العملية
+    transaction_ref = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     seller = relationship("Seller", backref="withdrawals")
