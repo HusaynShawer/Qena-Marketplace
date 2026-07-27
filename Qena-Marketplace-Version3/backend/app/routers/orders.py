@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.core.database import get_db
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.cart import Cart
 from app.models.product import Product
@@ -8,6 +8,7 @@ from app.models.user import User
 from app.dependencies.auth import get_current_user
 from pydantic import BaseModel
 from typing import Optional
+from uuid import UUID
 
 router = APIRouter()
 
@@ -139,7 +140,7 @@ def get_orders(
 
 @router.get("/{order_id}")
 def get_order_detail(
-    order_id: int,
+    order_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -182,7 +183,7 @@ def get_seller_orders(
 
 @router.get("/{order_id}/buyer-info")
 def get_buyer_info(
-    order_id: int,
+    order_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -220,7 +221,7 @@ def get_buyer_info(
 
 @router.put("/{order_id}/status")
 def update_order_status(
-    order_id: int,
+    order_id: UUID,
     update: StatusUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -273,7 +274,7 @@ def update_order_status(
 
 # ── Wallet helper (unchanged) ──────────────────────────────────────────────────
 
-def credit_seller_wallet(seller_id: int, amount: float, order_id: int, db: Session):
+def credit_seller_wallet(seller_id: UUID, amount: float, order_id: UUID, db: Session):
     """Credit seller's wallet for a completed order."""
     from app.models.wallet import Wallet, WalletTransaction, TransactionType
     wallet = db.query(Wallet).filter(Wallet.seller_id == seller_id).first()

@@ -3,6 +3,7 @@ from app.models.product import Product
 from app.product.product_repo import ProductRepository
 from app.Helper.helper_func import raise_not_found,raise_bad_request
 from app.schemas.product import ProductUpdate
+from uuid import UUID
 
 class ProductService:
     def __init__(self,session:AsyncSession):
@@ -12,7 +13,7 @@ class ProductService:
     async def create(self,product:Product)->Product:
         return await self.product_repo.create(product=product)
 
-    async def get_product(self,product_id:str)->Product:
+    async def get_product(self,product_id:UUID)->Product:
         product = await self.product_repo.get_by_id(product_id=product_id)
         if not product:
             raise_not_found("Product not found")
@@ -27,7 +28,7 @@ class ProductService:
     #update_product
     async def update_product(
         self,
-        product_id: str,
+        product_id: UUID,
         update: ProductUpdate,
     ) -> Product:
 

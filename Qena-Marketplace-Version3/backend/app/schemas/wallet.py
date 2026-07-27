@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 
 # ------------------------------------------------------------------
@@ -23,8 +24,8 @@ class WithdrawalStatus(str, Enum):
 # ------------------------------------------------------------------
 
 class WalletResponse(BaseModel):
-    id: int
-    seller_id: int
+    id: UUID
+    seller_id: UUID
     balance: float
     total_earned: float
     created_at: datetime
@@ -38,12 +39,12 @@ class WalletResponse(BaseModel):
 # ------------------------------------------------------------------
 
 class WalletTransactionResponse(BaseModel):
-    id: int
-    wallet_id: int
+    id: UUID
+    wallet_id: UUID
     type: TransactionType
     amount: float
     description: Optional[str] = None
-    order_id: Optional[int] = None
+    order_id: Optional[UUID] = None
     created_at: datetime
 
     class Config:
@@ -60,8 +61,8 @@ class WithdrawalRequestCreate(BaseModel):
     account_number: str
 
 class WithdrawalRequestResponse(BaseModel):
-    id: int
-    seller_id: int
+    id: UUID
+    seller_id: UUID
     amount: float
     method: str
     account_number: str

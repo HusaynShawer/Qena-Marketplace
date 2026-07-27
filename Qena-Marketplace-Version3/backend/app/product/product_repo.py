@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.product import Product
+from uuid import UUID
 
 class ProductRepository:
     def __init__(self, session: AsyncSession):
@@ -12,12 +13,13 @@ class ProductRepository:
         await self.session.refresh(product)
         return product
 
-    async def get_by_id(self,product_id:str)->Product|None:
+    async def get_by_id(self,product_id:UUID)->Product|None:
+        # product_id is UUID; Product.id column is UUID(as_uuid=True)
         stmt = select(Product).where(Product.id == product_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_seller(self,seller_id:str)->list[Product]:
+    async def get_by_seller(self,seller_id:UUID)->list[Product]:
         stmt = select(Product).where(Product.seller_id==seller_id)
         results = await self.session.execute(stmt)
         return results.scalars().all()

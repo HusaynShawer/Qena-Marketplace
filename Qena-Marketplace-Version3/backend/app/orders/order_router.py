@@ -7,6 +7,7 @@ from app.orders.order_service import OrderService
 from app.schemas.checkout import CheckoutRequest
 from app.schemas.order import OrderStatusUpdate
 from app.dependencies.auth import get_current_user, require_role
+from uuid import UUID
 
 order_router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -42,7 +43,7 @@ async def get_orders(
 
 @order_router.get("/{order_id}", summary="Get order detail")
 async def get_order_detail(
-    order_id: str,
+    order_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -73,7 +74,7 @@ async def get_seller_orders(
 
 @seller_router.get("/{order_id}/buyer-info", summary="Get buyer contact info")
 async def get_buyer_info(
-    order_id: str,
+    order_id: UUID,
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):
@@ -87,7 +88,7 @@ async def get_buyer_info(
 
 @seller_router.patch("/{order_id}/status", summary="Update order status")
 async def update_order_status(
-    order_id: str,
+    order_id: UUID,
     body: OrderStatusUpdate,
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
@@ -107,7 +108,7 @@ async def update_order_status(
 
 @order_router.delete("/{order_id}/cancel", summary="Hard-cancel an order")
 async def cancel_order(
-    order_id: str,
+    order_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
@@ -125,8 +126,8 @@ async def cancel_order(
 
 @order_router.post("/{order_id}/credit-wallet", summary="Manually credit seller wallet")
 async def credit_seller_wallet(
-    order_id: str,
-    seller_id: str,
+    order_id: UUID,
+    seller_id: UUID,
     amount: float,
     current_user: User = Depends(require_role("admin")),
     session: AsyncSession = Depends(get_db),

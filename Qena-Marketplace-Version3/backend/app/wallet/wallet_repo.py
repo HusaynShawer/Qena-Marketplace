@@ -7,6 +7,7 @@ from app.models.wallet import (
     WithdrawalRequest,
     WithdrawalStatus,
 )
+from uuid import UUID
 
 
 class WalletRepository:
@@ -36,7 +37,7 @@ class WalletRepository:
 
     async def get_by_seller_id(
         self,
-        seller_id: str,
+        seller_id: UUID,
     ) -> Wallet | None:
         stmt = select(Wallet).where(
             Wallet.seller_id == seller_id
@@ -71,7 +72,7 @@ class WalletRepository:
 
     async def get_transactions_by_wallet_id(
         self,
-        wallet_id: int,
+        wallet_id: UUID,
     ) -> list[WalletTransaction]:
         stmt = select(WalletTransaction).where(
             WalletTransaction.wallet_id == wallet_id
@@ -98,7 +99,7 @@ class WalletRepository:
 
     async def get_pending_withdraw(
         self,
-        seller_id: str,
+        seller_id: UUID,
     ) -> WithdrawalRequest | None:
         stmt = select(WithdrawalRequest).where(
             WithdrawalRequest.seller_id == seller_id,
@@ -122,7 +123,7 @@ class WalletRepository:
 
     async def get_withdraw_by_id(
         self,
-        request_id: int,
+        request_id: UUID,
     ) -> WithdrawalRequest | None:
         stmt = select(WithdrawalRequest).where(
             WithdrawalRequest.id == request_id

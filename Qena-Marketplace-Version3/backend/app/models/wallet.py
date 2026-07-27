@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Float, String, ForeignKey, DateTime, Enum
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from uuid import uuid4
 import enum
 
 class TransactionType(enum.Enum):
@@ -15,8 +17,10 @@ class WithdrawalStatus(enum.Enum):
 
 class Wallet(Base):
     __tablename__ = "wallets"
-    id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer, ForeignKey("sellers.id"), unique=True)
+    # UUID primary key for wallet
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True, nullable=False)
+    # seller_id references sellers.id which is UUID
+    seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.id"), unique=True)
     balance = Column(Float, default=0.0)
     total_earned = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -25,19 +29,20 @@ class Wallet(Base):
 
 class WalletTransaction(Base):
     __tablename__ = "wallet_transactions"
-    id = Column(Integer, primary_key=True)
-    wallet_id = Column(Integer, ForeignKey("wallets.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True, nullable=False)
+    wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"))
     type = Column(Enum(TransactionType))
     amount = Column(Float)
     description = Column(String)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
+    # order_id refers to orders.id which is now UUID
+    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     wallet = relationship("Wallet", back_populates="transactions")
 
 class WithdrawalRequest(Base):
     __tablename__ = "withdrawal_requests"
-    id = Column(Integer, primary_key=True)
-    seller_id = Column(Integer, ForeignKey("sellers.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True, nullable=False)
+    seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.id"))
     amount = Column(Float)
     method = Column(String)
     account_number = Column(String)

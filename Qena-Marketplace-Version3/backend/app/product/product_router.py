@@ -7,6 +7,7 @@ from app.models.product import Product
 from app.product.product_service import ProductService
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.dependencies.auth import get_current_user, require_role
+from uuid import UUID
 
 product_router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -26,7 +27,7 @@ async def get_products(
 
 @product_router.get("/{product_id}", response_model=ProductResponse, summary="Get product by ID")
 async def get_product(
-    product_id: int,
+    product_id: UUID,
     session: AsyncSession = Depends(get_db),
 ):
     """Return a single product by its ID. Raises 404 if not found."""
@@ -52,7 +53,7 @@ async def create_product(
 
 @product_router.patch("/{product_id}", response_model=ProductResponse, summary="Update a product")
 async def update_product(
-    product_id: int,
+    product_id: UUID,
     body: ProductUpdate,
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
@@ -72,7 +73,7 @@ async def update_product(
 
 @product_router.delete("/{product_id}", summary="Delete a product", status_code=204)
 async def delete_product(
-    product_id: int,
+    product_id: UUID,
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):

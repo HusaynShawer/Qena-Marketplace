@@ -15,6 +15,7 @@ from app.wallet.wallet_repo import WalletRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from fastapi import HTTPException
+from uuid import UUID
 
 class WalletService:
 
@@ -34,9 +35,9 @@ class WalletService:
 
     async def credit_wallet(
         self,
-        seller_id: str,
+        seller_id: UUID,
         amount: float,
-        order_id: int,
+        order_id: UUID,
     ) -> None:
 
         wallet = await self.wallet_repo.get_by_seller_id(
@@ -108,7 +109,7 @@ class WalletService:
 
     async def request_withdraw(
         self,
-        seller_id: str,
+        seller_id: UUID,
         request: WithdrawalRequest,
     ) -> WithdrawalRequest:
 
@@ -145,7 +146,7 @@ class WalletService:
 
     async def get_pending_withdraw(
         self,
-        seller_id: str,
+        seller_id: UUID,
     ) -> WithdrawalRequest | None:
 
         return await self.wallet_repo.get_pending_withdraw(
@@ -160,7 +161,7 @@ class WalletService:
 
     async def approve_withdraw(
         self,
-        request_id: int,
+        request_id: UUID,
     ) -> WithdrawalRequest:
 
         request = await self.wallet_repo.get_withdraw_by_id(
@@ -214,7 +215,7 @@ class WalletService:
 
     async def reject_withdraw(
         self,
-        request_id: int,
+        request_id: UUID,
         admin_note: str | None = None,
     ) -> WithdrawalRequest:
 
