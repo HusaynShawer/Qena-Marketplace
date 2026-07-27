@@ -25,7 +25,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-qena_user}:${POSTGRES_PASSWORD:-qena_pass}@postgres:5432/${POSTGRES_DB:-qena_marketplace}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-qena_user}:${POSTGRES_PASSWORD:-qena_pass}@postgres:5432/${POSTGRES_DB:-qena_marketplace}
       SECRET_KEY: ${SECRET_KEY}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
