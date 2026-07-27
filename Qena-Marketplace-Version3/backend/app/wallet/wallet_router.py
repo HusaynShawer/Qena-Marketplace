@@ -6,6 +6,7 @@ from app.models.user import User
 from app.schemas.wallet import WithdrawalRequestCreate
 from app.wallet.wallet_service import WalletService
 from app.dependencies.auth import get_current_user, require_role
+from uuid import UUID
 
 wallet_router = APIRouter(prefix="/wallet", tags=["Wallet"])
 admin_router = APIRouter(prefix="/admin/wallet", tags=["Admin — Wallet"])
@@ -79,7 +80,7 @@ async def admin_get_pending_withdrawals(
 
 @admin_router.post("/withdrawals/{request_id}/approve", summary="Approve a withdrawal")
 async def approve_withdraw(
-    request_id: int,
+    request_id: UUID,
     current_user: User = Depends(require_role("admin")),
     session: AsyncSession = Depends(get_db),
 ):
@@ -94,7 +95,7 @@ async def approve_withdraw(
 
 @admin_router.post("/withdrawals/{request_id}/reject", summary="Reject a withdrawal")
 async def reject_withdraw(
-    request_id: int,
+    request_id: UUID,
     admin_note: str | None = Query(default=None, description="Optional rejection reason"),
     current_user: User = Depends(require_role("admin")),
     session: AsyncSession = Depends(get_db),

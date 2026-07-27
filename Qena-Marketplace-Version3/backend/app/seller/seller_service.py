@@ -5,6 +5,7 @@ from app.Helper.helper_func import raise_not_found,raise_bad_request
 from app.seller.seller_repo import SellerRepository
 from app.models.user import User
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class SellerApply(BaseModel):
@@ -36,7 +37,7 @@ class SellerService:
         await self.seller_repo.create(seller=seller)
         return {"message": "Application submitted, waiting for approval"}
 
-    async def get_seller(self,seller_id)->Seller:
+    async def get_seller(self,seller_id:UUID)->Seller:
         seller = await self.seller_repo.get_by_seller_id(seller_id)
         if not seller:
             raise_not_found("seller not exists")
@@ -46,11 +47,11 @@ class SellerService:
         sellers = await self.seller_repo.get_all()
         return sellers
 
-    async def delete(self,seller_id):
-        seller = await self.seller_repo.get_by_seller_id(seller_id=seller_id)
+    async def delete(self,seller_id:UUID):
+        seller = await self.seller_repo.get_by_seller_id(seller_id)
         if not seller:
             raise_not_found("seller not exists")
-        await self.seller_repo.delete(seller_id=seller_id)
+        await self.seller_repo.delete(seller)
 
     async def update(self,current_user:User,update:SellerUpdate)->Seller:
         seller =await self.seller_repo.get_by_user_id(current_user.id)

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.items import CartItemCreate,CartItemUpdate
 from app.product.product_repo import ProductRepository
+from uuid import UUID
 
 class CartService:
 
@@ -14,6 +15,7 @@ class CartService:
         self.product_repo = ProductRepository(session=session)
 
     async def get_cart(self,current_user:User)->Cart:
+        # current_user.id is a UUID
         cart = await self.cart_repo.get_user_cart(current_user.id)
         return cart
     
@@ -43,7 +45,7 @@ class CartService:
         
         return {"message": "Added to cart"}
 
-    async def delete_item(self,product_id:str,current_user:User)-> dict:
+    async def delete_item(self,product_id:UUID,current_user:User)-> dict:
         cart = await self.cart_repo.get_cart_item(user_id=current_user.id,
                                             product_id=product_id)
         if not cart:

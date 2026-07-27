@@ -1,14 +1,19 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from uuid import uuid4
+
 
 class Product(Base):
     __tablename__ = "products"
     
-    id = Column(Integer, primary_key=True, index=True)
-    seller_id = Column(Integer, ForeignKey("sellers.id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    # UUID primary key for products
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4, unique=True, nullable=False)
+    # seller_id and category_id reference UUID PKs on their tables
+    seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.id"), nullable=False)
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     price = Column(Float, nullable=False)

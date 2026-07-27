@@ -1,14 +1,16 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List
+from uuid import UUID
 from app.models.order import OrderStatus
 
+
 class OrderItemBase(BaseModel):
-    product_id: int
+    product_id: UUID
     quantity: int
 
 class OrderItemResponse(OrderItemBase):
-    id: int
+    id: UUID
     price: float
     
     class Config:
@@ -18,9 +20,9 @@ class OrderCreate(BaseModel):
     items: List[OrderItemBase]
 
 class OrderResponse(BaseModel):
-    id: int
-    buyer_id: int
-    seller_id: int
+    id: UUID
+    buyer_id: UUID
+    seller_id: UUID
     total_amount: float
     status: OrderStatus
     created_at: datetime

@@ -1,13 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
+
 
 class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
     price: float
     stock: int
-    category_id: Optional[int] = None
+    category_id: Optional[UUID] = None
 
 class ProductCreate(ProductBase):
     pass
@@ -21,8 +23,8 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ProductResponse(ProductBase):
-    id: int
-    seller_id: int
+    id: UUID
+    seller_id: UUID
     image_url: Optional[str] = None
     is_active: bool
     created_at: datetime

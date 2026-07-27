@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cart import Cart
+from uuid import UUID
 
 
 class CartRepository:
@@ -19,7 +20,7 @@ class CartRepository:
 
     async def get_user_cart(
         self,
-        user_id: str,
+        user_id: UUID,
     ) -> Cart | None:
         stmt = select(Cart).where(Cart.user_id == user_id)
 
@@ -28,7 +29,7 @@ class CartRepository:
         return result.scalar_one_or_none()
 
 
-    async def get_cart_item(self,user_id: str,product_id: str):
+    async def get_cart_item(self,user_id: UUID,product_id: UUID):
         stmt = select(Cart).where(Cart.user_id == user_id,
                                   Cart.product_id ==product_id)
         result = await self.session.execute(stmt)
@@ -37,7 +38,7 @@ class CartRepository:
 
     async def get_by_id(
         self,
-        cart_id: str,
+        cart_id: UUID,
     ) -> Cart | None:
         stmt = select(Cart).where(Cart.id == cart_id)
 
@@ -47,7 +48,7 @@ class CartRepository:
 
     async def clear_cart(
         self,
-        user_id: str,
+        user_id: UUID,
     ):
         """
         NOTE:
