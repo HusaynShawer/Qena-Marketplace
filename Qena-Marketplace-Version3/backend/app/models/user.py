@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum
+from sqlalchemy import Column, String, DateTime, Enum
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from uuid import uuid4
 import enum
 
 class UserRole(str, enum.Enum):
@@ -12,7 +14,10 @@ class UserRole(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
+    # Use PostgreSQL UUID type for the primary key. `as_uuid=True` makes
+    # SQLAlchemy handle values as Python `uuid.UUID` objects. We generate
+    # values using `uuid4` per the migration requirements.
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid4, unique=True, nullable=False)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)

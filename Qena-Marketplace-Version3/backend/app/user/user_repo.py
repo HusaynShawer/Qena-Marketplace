@@ -1,14 +1,22 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
+from uuid import UUID
 
 
 class UserRepository:
     def __init__(self,session:AsyncSession):
         self.session = session
 
-    async def get_by_id(self,user_id:str)->User|None:
-        stmt = select(User).where(User.user_id == user_id)
+    async def create(self,user:User):
+        self.session.add(user)
+        await self.session.flush()
+        await self.session.refresh(user)
+        return user
+    
+    async def get_by_id(self,user_id:UUID)->User|None:
+        # user_id is a UUID object; the users.id column is UUID(as_uuid=True)
+        stmt = select(User).where(User.id == user_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     

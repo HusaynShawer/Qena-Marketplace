@@ -15,6 +15,7 @@ from app.seller.seller_repo import SellerRepository
 from fastapi import HTTPException
 from app.Helper.helper_func import _buyer_info_dict
 from app.Helper.helper import SELLER_ALLOWED_TRANSITIONS, VALID_STATUSES
+from uuid import UUID
 
 class OrderService:
 
@@ -192,8 +193,8 @@ class OrderService:
         current_user: User,
     ):
 
-        orders = await self.order_repo.get_by_buyer_id(
-            buyer_id=current_user.id
+        orders = await self.order_repo.get_by_user(
+            user_id=current_user.id
         )
 
         return [
@@ -207,7 +208,7 @@ class OrderService:
 
     async def get_order_detail(
         self,
-        order_id: str,
+        order_id: UUID,
         current_user: User,
     ):
 
@@ -235,13 +236,13 @@ class OrderService:
         self,
         current_user: User,
     ):
-        seller = await self.get_seller_repo.get_by_user_id(current_user.id)
+        seller = await self.seller_repo.get_by_user_id(current_user.id)
 
         if not seller:
             raise HTTPException(
                 status_code=400,detail="Seller is not found"
             )
-        orders = await self.order_repo.get_by_seller_id(
+        orders = await self.order_repo.get_by_seller(
             seller.id
         )
 
@@ -254,7 +255,7 @@ class OrderService:
     # TODO
     # ------------------------------------------------------------------
     #
-    async def get_buyer_info(self,order_id,current_user:User)->dict:
+    async def get_buyer_info(self,order_id:UUID,current_user:User)->dict:
         order = await self.order_repo.get_by_id(order_id=order_id)   
         if not order:
               raise HTTPException(
@@ -278,7 +279,7 @@ class OrderService:
 
     async def update_order_status(
     self,
-    order_id: str,
+    order_id: UUID,
     status: str,
     current_user: User,
 ):
@@ -359,7 +360,7 @@ class OrderService:
             await self.session.commit()
         return None
 
-    async def credit_seller_wallet(self,seller_id:str,amount:float,order_id:str)->None:
+    async def credit_seller_wallet(self,seller_id:UUID,amount:float,order_id:UUID)->None:
         await self.wallet_service.credit(
             seller_id=seller_id,
             amount=amount,

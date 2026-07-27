@@ -1,41 +1,49 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine
 from app.utils.logging import setup_logging
 from app.routers.api import api_router
-from sqlalchemy.ext.asyncio import AsyncSession
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 setup_logging()
 
-# ── Rate limiter (uses memory by default; swap storage_uri to Redis in prod) ──
 limiter = Limiter(
     key_func=get_remote_address,
-    # For Redis: storage_uri="redis://localhost:6379"
     default_limits=["200/minute"],
 )
 
-app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+# Lifespan: runs on startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Do NOT use create_all when using Alembic.
+    # Run `alembic upgrade head` before starting the server instead.
+    yield
+    # Shutdown: dispose engine cleanly
+    await engine.dispose()
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    debug=settings.DEBUG,
+    lifespan=lifespan,  # replaces deprecated @app.on_event
+)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── CORS ──────────────────────────────────────────────────────────────────────
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=settings.ALLOWED_ORIGINS,  # move origins to settings, not hardcoded
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
-# ── Security Headers ──────────────────────────────────────────────────────────
+# Security Headers
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -45,7 +53,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
-# ── Include API router ─────────────────────────────────────────────────────────
+# Routers
 app.include_router(api_router, prefix="/api")
 
 @app.get("/")

@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.user.user_service import UserService
 from app.dependencies.auth import get_current_user, require_role
+from uuid import UUID
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -45,7 +46,7 @@ async def get_all_users(
 
 @user_router.get("/{user_id}", summary="Get user by ID")
 async def get_user(
-    user_id: str,
+    user_id: UUID,
     current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -56,7 +57,7 @@ async def get_user(
 
 @user_router.delete("/{user_id}", summary="Delete a user", status_code=204)
 async def delete_user(
-    user_id: str,
+    user_id: UUID,
     current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):

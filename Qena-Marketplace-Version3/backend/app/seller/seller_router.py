@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.seller.seller_service import SellerService, SellerApply, SellerUpdate
 from app.dependencies.auth import get_current_user, require_role
+from uuid import UUID
 
 seller_router = APIRouter(prefix="/sellers", tags=["Sellers"])
 
@@ -24,7 +25,7 @@ async def get_all_sellers(
 
 @seller_router.get("/{seller_id}", summary="Get seller by ID")
 async def get_seller(
-    seller_id: int,
+    seller_id: UUID,
     session: AsyncSession = Depends(get_db),
 ):
     """Return a single seller by ID. Raises 404 if not found."""
@@ -71,7 +72,7 @@ async def update_seller(
 
 @seller_router.delete("/{seller_id}", summary="Delete a seller", status_code=204)
 async def delete_seller(
-    seller_id: int,
+    seller_id: UUID,
     current_user: User = Depends(require_role("admin")),
     session: AsyncSession = Depends(get_db),
 ):
