@@ -46,7 +46,10 @@ class ResetPasswordRequest(BaseModel):
     otp: str
     new_password: str
 
-auth_router = APIRouter()
+auth_router = APIRouter(
+    prefix="/auth",
+    tags=["Auth"]
+)
 
 @auth_router.post("/register", response_model=UserResponse)
 async def register(user_create: UserCreate, db: AsyncSession = Depends(get_db)):
