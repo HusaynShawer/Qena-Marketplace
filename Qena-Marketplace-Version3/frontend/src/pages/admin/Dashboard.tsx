@@ -6,16 +6,33 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null)
   const [sellers, setSellers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [financialsError, setFinancialsError] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      api.get('/admin/stats'),
-      api.get('/admin/financial/sellers'),
-    ]).then(([s, sel]) => {
-      setStats(s.data)
-      setSellers(sel.data)
-    }).catch(() => {})
-      .finally(() => setLoading(false))
+    const fetchData = async () => {
+      // طلب الإحصائيات بشكل مستقل
+      try {
+        const statsRes = await api.get('/admin/stats')
+        setStats(statsRes.data)
+        console.log('✅ Stats loaded:', statsRes.data)
+      } catch (err) {
+        console.error('❌ Stats error:', err.response?.status, err.response?.data)
+      }
+
+      // طلب البيانات المالية بشكل مستقل
+      try {
+        const finRes = await api.get('/admin/sellers/financials')
+        setSellers(finRes.data)
+        setFinancialsError(false)
+        console.log('✅ Financials loaded:', finRes.data)
+      } catch (err) {
+        console.error('❌ Financials error:', err.response?.status, err.response?.data)
+        setFinancialsError(true)
+        setSellers([]) // نتأكد إن sellers فاضية
+      }
+    }
+
+    fetchData().finally(() => setLoading(false))
   }, [])
 
   if (loading) return (
@@ -82,59 +99,65 @@ export default function AdminDashboard() {
       {/* Sellers Financial Table */}
       <h2 className="text-xl font-black mb-4">🏪 Sellers Financial Details</h2>
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="text-left px-6 py-3 font-semibold text-gray-600">Seller</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Orders</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Total Earned</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Balance</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Withdrawn</th>
-              <th className="text-right px-6 py-3 font-semibold text-gray-600">Pending</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sellers.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400">No sellers yet</td></tr>
-            ) : sellers.map(s => (
-              <tr key={s.seller_id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center font-bold text-orange-600 text-sm">
-                      {s.shop_name?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold">{s.shop_name}</p>
-                      <p className="text-xs text-gray-400">{s.seller_name}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right font-medium">{s.orders_count}</td>
-                <td className="px-6 py-4 text-right font-bold text-green-600">{s.total_earned.toLocaleString()} EGP</td>
-                <td className="px-6 py-4 text-right font-bold text-orange-600">{s.balance.toLocaleString()} EGP</td>
-                <td className="px-6 py-4 text-right text-gray-600">{s.total_withdrawn.toLocaleString()} EGP</td>
-                <td className="px-6 py-4 text-right">
-                  {s.pending_withdrawal > 0
-                    ? <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">{s.pending_withdrawal.toLocaleString()} EGP</span>
-                    : <span className="text-gray-400">—</span>
-                  }
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          {sellers.length > 0 && (
-            <tfoot className="bg-gray-50 border-t font-bold">
+        {financialsError ? (
+          <div className="text-center py-12 text-red-500 font-medium">
+            ⚠️ Failed to load financial details. Please try again later.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
               <tr>
-                <td className="px-6 py-3 text-gray-700">Total</td>
-                <td className="px-6 py-3 text-right">{sellers.reduce((a, s) => a + s.orders_count, 0)}</td>
-                <td className="px-6 py-3 text-right text-green-600">{sellers.reduce((a, s) => a + s.total_earned, 0).toLocaleString()} EGP</td>
-                <td className="px-6 py-3 text-right text-orange-600">{sellers.reduce((a, s) => a + s.balance, 0).toLocaleString()} EGP</td>
-                <td className="px-6 py-3 text-right">{sellers.reduce((a, s) => a + s.total_withdrawn, 0).toLocaleString()} EGP</td>
-                <td className="px-6 py-3 text-right text-yellow-600">{sellers.reduce((a, s) => a + s.pending_withdrawal, 0).toLocaleString()} EGP</td>
+                <th className="text-left px-6 py-3 font-semibold text-gray-600">Seller</th>
+                <th className="text-right px-6 py-3 font-semibold text-gray-600">Orders</th>
+                <th className="text-right px-6 py-3 font-semibold text-gray-600">Total Earned</th>
+                <th className="text-right px-6 py-3 font-semibold text-gray-600">Balance</th>
+                <th className="text-right px-6 py-3 font-semibold text-gray-600">Withdrawn</th>
+                <th className="text-right px-6 py-3 font-semibold text-gray-600">Pending</th>
               </tr>
-            </tfoot>
-          )}
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {sellers.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-12 text-gray-400">No sellers yet</td></tr>
+              ) : sellers.map(s => (
+                <tr key={s.seller_id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center font-bold text-orange-600 text-sm">
+                        {s.shop_name?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{s.shop_name}</p>
+                        <p className="text-xs text-gray-400">{s.seller_name}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right font-medium">{s.orders_count}</td>
+                  <td className="px-6 py-4 text-right font-bold text-green-600">{s.total_earned.toLocaleString()} EGP</td>
+                  <td className="px-6 py-4 text-right font-bold text-orange-600">{s.balance.toLocaleString()} EGP</td>
+                  <td className="px-6 py-4 text-right text-gray-600">{s.total_withdrawn.toLocaleString()} EGP</td>
+                  <td className="px-6 py-4 text-right">
+                    {s.pending_withdrawal > 0
+                      ? <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">{s.pending_withdrawal.toLocaleString()} EGP</span>
+                      : <span className="text-gray-400">—</span>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {sellers.length > 0 && (
+              <tfoot className="bg-gray-50 border-t font-bold">
+                <tr>
+                  <td className="px-6 py-3 text-gray-700">Total</td>
+                  <td className="px-6 py-3 text-right">{sellers.reduce((a, s) => a + s.orders_count, 0)}</td>
+                  <td className="px-6 py-3 text-right text-green-600">{sellers.reduce((a, s) => a + s.total_earned, 0).toLocaleString()} EGP</td>
+                  <td className="px-6 py-3 text-right text-orange-600">{sellers.reduce((a, s) => a + s.balance, 0).toLocaleString()} EGP</td>
+                  <td className="px-6 py-3 text-right">{sellers.reduce((a, s) => a + s.total_withdrawn, 0).toLocaleString()} EGP</td>
+                  <td className="px-6 py-3 text-right text-yellow-600">{sellers.reduce((a, s) => a + s.pending_withdrawal, 0).toLocaleString()} EGP</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        )}
       </div>
 
       {/* Quick Actions */}

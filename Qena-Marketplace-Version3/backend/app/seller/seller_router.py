@@ -13,6 +13,13 @@ seller_router = APIRouter(prefix="/sellers", tags=["Sellers"])
 # ------------------------------------------------------------------
 # Public
 # ------------------------------------------------------------------
+@seller_router.get("/me")
+async def get_my_seller(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    service = SellerService(session)
+    return await service.get_my_seller(current_user.id)
 
 @seller_router.get("", summary="List all sellers")
 async def get_all_sellers(
@@ -24,7 +31,7 @@ async def get_all_sellers(
 
 
 @seller_router.get("/{seller_id}", summary="Get seller by ID")
-async def get_seller(
+async def get_seller_by_id(
     seller_id: UUID,
     session: AsyncSession = Depends(get_db),
 ):
@@ -32,7 +39,14 @@ async def get_seller(
     service = SellerService(session)
     return await service.get_seller(seller_id)
 
-
+# @seller_router.get("/me", summary="Get seller by ID")
+# async def get_seller(
+#     current_user:User = Depends(get_current_user),
+#     session: AsyncSession = Depends(get_db),
+# ):
+#     """Return a single seller by ID. Raises 404 if not found."""
+#     service = SellerService(session)
+#     return await service.get(current_user.id)
 # ------------------------------------------------------------------
 # Authenticated user — apply / manage own seller account
 # ------------------------------------------------------------------

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.admin.admin_service import AdminService, SuspendRequest
 from app.dependencies.auth import get_current_user, get_db
 from app.models import User
+from uuid import UUID
 
 admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -52,16 +53,6 @@ async def get_all_sellers(
     return await service.get_all_sellers(current_user)
 
 
-@admin_router.get("/sellers/{seller_id}")
-async def get_seller(
-    seller_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    service = AdminService(db)
-    return await service.get_seller_by_id(seller_id, current_user)
-
-
 @admin_router.get("/sellers/financials")
 async def get_sellers_financials(
     current_user: User = Depends(get_current_user),
@@ -71,9 +62,19 @@ async def get_sellers_financials(
     return await service.get_sellers_financials(current_user)
 
 
+@admin_router.get("/sellers/{seller_id}")
+async def get_seller(
+    seller_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = AdminService(db)
+    return await service.get_seller_by_id(seller_id, current_user)
+
+
 @admin_router.post("/sellers/{seller_id}/approve")
 async def approve_seller(
-    seller_id: int,
+    seller_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -83,7 +84,7 @@ async def approve_seller(
 
 @admin_router.post("/sellers/{seller_id}/suspend")
 async def suspend_seller(
-    seller_id: int,
+    seller_id: UUID,
     body: SuspendRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -94,7 +95,7 @@ async def suspend_seller(
 
 @admin_router.post("/sellers/{seller_id}/unsuspend")
 async def unsuspend_seller(
-    seller_id: int,
+    seller_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

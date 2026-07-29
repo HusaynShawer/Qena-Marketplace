@@ -31,7 +31,6 @@ class SellerRepository:
     
     async def save(self,seller:Seller)->Seller:
         await self.session.flush()
-        await self.session.refresh(seller)
         return seller
 
     async def delete(self,seller:Seller):

@@ -57,24 +57,45 @@ class AdminRepo:
         }
 
     async def get_pending_sellers(self, admin: User):
-        stmt = select(Seller).where(Seller.approved == False)
+        stmt = (
+            select(Seller)
+            .where(Seller.approved == False)
+            .options(selectinload(Seller.user))
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def get_suspended_sellers(self, admin: User):
-        stmt = select(Seller).where(Seller.is_suspended == True)
+        stmt = (
+            select(Seller)
+            .where(Seller.is_suspended == True)
+            .options(selectinload(Seller.user))
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def get_approved_sellers(self, admin: User):
-        stmt = select(Seller).where(Seller.approved == True)
+        stmt = (
+            select(Seller)
+            .where(Seller.approved == True)
+            .options(selectinload(Seller.user))
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def get_all_sellers(self, admin: User):
-        stmt = select(Seller)
+        stmt = select(Seller).options(selectinload(Seller.user))
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def get_seller_by_id_with_user(self, seller_id):
+        stmt = (
+            select(Seller)
+            .where(Seller.id == seller_id)
+            .options(selectinload(Seller.user))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def unsuspend_seller(self, admin: User, seller_id: int):
         stmt = select(Seller).where(Seller.id == seller_id)
@@ -83,28 +104,58 @@ class AdminRepo:
         if not seller:
             return None
         seller.is_suspended = False
-        await self.session.commit()
         return seller
 
+    # async def get_sellers_financials(self, admin: User):
+    #     stmt = select(Seller).options(
+    #         selectinload(Seller.wallet),
+    #         selectinload(Seller.orders)
+    #     )
+    #     result = await self.session.execute(stmt)
+    #     sellers = result.scalars().all()
+    #     financials = []
+    #     for seller in sellers:
+    #         wallet = seller.wallet
+    #         financials.append({
+    #             "seller_id": seller.id,
+    #             "seller_name": seller.name,
+    #             "total_earned": float(wallet.total_earned) if wallet else 0.0,
+    #             "wallet_balance": float(wallet.balance) if wallet else 0.0,
+    #             "total_orders": len(seller.orders) if seller.orders else 0,
+    #         })
+    #     return financials
     async def get_sellers_financials(self, admin: User):
         stmt = select(Seller).options(
-            selectinload(Seller.wallet),
-            selectinload(Seller.orders)
+            selectinload(Seller.user),
+            selectinload(Seller.wallet)
         )
         result = await self.session.execute(stmt)
         sellers = result.scalars().all()
+
         financials = []
         for seller in sellers:
             wallet = seller.wallet
+
+            orders_count_stmt = select(func.count(Order.id)).where(Order.seller_id == seller.id)
+            orders_count = await self.session.scalar(orders_count_stmt) or 0
+
+            total_earned = float(wallet.total_earned) if wallet and wallet.total_earned else 0.0
+            balance = float(wallet.balance) if wallet and wallet.balance else 0.0
+            total_withdrawn = float(getattr(wallet, 'total_withdrawn', 0)) if wallet else 0.0
+            pending_withdrawal = float(getattr(wallet, 'pending_withdrawal', 0)) if wallet else 0.0
+
             financials.append({
                 "seller_id": seller.id,
-                "seller_name": seller.name,
-                "total_earned": float(wallet.total_earned) if wallet else 0.0,
-                "wallet_balance": float(wallet.balance) if wallet else 0.0,
-                "total_orders": len(seller.orders) if seller.orders else 0,
+                "shop_name": seller.shop_name,
+                "seller_name": seller.user.name if seller.user else "Unknown",
+                "orders_count": orders_count,
+                "total_earned": total_earned,
+                "balance": balance,
+                "total_withdrawn": total_withdrawn,
+                "pending_withdrawal": pending_withdrawal,
             })
         return financials
 
     async def save(self, seller: Seller):
-        self.session.add(seller)
+        self.session.flush(seller)
         await self.session.flush()
