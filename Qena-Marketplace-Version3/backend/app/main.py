@@ -16,19 +16,16 @@ limiter = Limiter(
     default_limits=["200/minute"],
 )
 
-# Lifespan: runs on startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Do NOT use create_all when using Alembic.
-    # Run `alembic upgrade head` before starting the server instead.
+
     yield
-    # Shutdown: dispose engine cleanly
     await engine.dispose()
 
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
-    lifespan=lifespan,  # replaces deprecated @app.on_event
+    lifespan=lifespan, 
 )
 
 app.state.limiter = limiter
@@ -37,7 +34,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,  # move origins to settings, not hardcoded
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

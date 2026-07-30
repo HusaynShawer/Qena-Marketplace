@@ -37,9 +37,6 @@ class AdminService:
         require_admin(current_user)
         return await self.admin_repo.get_stats(current_user)
 
-    # ----------------------------------------------------
-    # Sellers (الريبو أصبح يقوم بتحميل user تلقائياً)
-    # ----------------------------------------------------
 
     async def get_pending_sellers(self, current_user: User):
         require_admin(current_user)
