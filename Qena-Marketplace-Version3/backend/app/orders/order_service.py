@@ -153,7 +153,7 @@ class OrderService:
                     )
 
                 # Credit seller wallet
-                await self.wallet_service.credit(
+                await self.wallet_service.credit_wallet(
                     seller_id=seller_id,
                     amount=total,
                     order_id=order.id,
@@ -361,7 +361,7 @@ class OrderService:
         return None
 
     async def credit_seller_wallet(self,seller_id:UUID,amount:float,order_id:UUID)->None:
-        await self.wallet_service.credit(
+        await self.wallet_service.credit_wallet(
             seller_id=seller_id,
             amount=amount,
             order_id=order_id,

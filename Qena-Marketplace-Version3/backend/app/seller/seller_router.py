@@ -13,6 +13,8 @@ seller_router = APIRouter(prefix="/sellers", tags=["Sellers"])
 # ------------------------------------------------------------------
 # Public
 # ------------------------------------------------------------------
+
+
 @seller_router.get("/me")
 async def get_my_seller(
     current_user: User = Depends(get_current_user),
@@ -20,6 +22,16 @@ async def get_my_seller(
 ):
     service = SellerService(session)
     return await service.get_my_seller(current_user.id)
+
+
+@seller_router.get("/me/products")
+async def seller_product(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    service = SellerService(session)
+    return await service.get_seller_products(current_user=current_user)
+
 
 @seller_router.get("", summary="List all sellers")
 async def get_all_sellers(

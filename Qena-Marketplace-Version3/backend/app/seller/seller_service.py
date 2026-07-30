@@ -2,10 +2,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.seller import Seller
 from app.Helper.helper_func import raise_not_found, raise_bad_request
 from app.seller.seller_repo import SellerRepository
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models import Product
 from pydantic import BaseModel
 from uuid import UUID
 from app.core.unitofwork import UnitOfWork
+from app.dependencies.auth import get_current_user, require_role
+from fastapi import Depends
 
 
 class SellerApply(BaseModel):
@@ -26,6 +29,16 @@ class SellerService:
         self.session = session
         self.seller_repo = SellerRepository(session)
         self.uow = UnitOfWork(session)
+
+
+    async def get_seller_products(self, current_user: User) -> list[Product]:
+        seller = await self.seller_repo.get_by_user_id(current_user.id)
+        if not seller:
+            raise_not_found("Seller not found")
+        products = await self.seller_repo.get_seller_products(seller.id)
+        if not products:
+            raise_not_found("No products found for this seller")
+        return products
 
     async def create(
         self,
