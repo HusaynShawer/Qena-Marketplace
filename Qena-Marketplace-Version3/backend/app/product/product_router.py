@@ -47,8 +47,7 @@ async def create_product(
 ):
     """Create a new product under the authenticated seller's account."""
     service = ProductService(session)
-    product = Product(**body.model_dump(), seller_id=current_user.id)
-    return await service.create(product)
+    return await service.create(body,current_user)
 
 
 @product_router.patch("/{product_id}", response_model=ProductResponse, summary="Update a product")
@@ -63,12 +62,7 @@ async def update_product(
     Only the owning seller can update. Raises 400 if price ≤ 0 or stock < 0.
     """
     service = ProductService(session)
-    product = await service.get_product(product_id)
-
-    if product.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    return await service.update_product(product_id, body)
+    return await service.update_product(product_id = product_id,update = body,current_user=current_user)
 
 
 @product_router.delete("/{product_id}", summary="Delete a product", status_code=204)
@@ -82,9 +76,4 @@ async def delete_product(
     Only the owning seller can delete.
     """
     service = ProductService(session)
-    product = await service.get_product(product_id)
-
-    if product.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    await service.delete(product)
+    await service.delete(product_id,current_user)

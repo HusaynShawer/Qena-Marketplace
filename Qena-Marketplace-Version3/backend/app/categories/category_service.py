@@ -1,4 +1,3 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Category,User
 from app.categories.category_repo import CategoryRepository
@@ -12,6 +11,7 @@ class CategoryService:
         self.session = session
         self.cat_repo = CategoryRepository(session)
         self.uow = UnitOfWork(session)
+
     async def get_by_id(self,cat_id:UUID)->Category:
         cat = await self.cat_repo.get_by_id(cat_id)
         if not cat:

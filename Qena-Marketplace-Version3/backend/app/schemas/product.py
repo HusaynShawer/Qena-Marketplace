@@ -19,7 +19,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     price: Optional[float] = None
     stock: Optional[int] = None
-    category_id: Optional[int] = None
+    category_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
 class ProductResponse(ProductBase):
