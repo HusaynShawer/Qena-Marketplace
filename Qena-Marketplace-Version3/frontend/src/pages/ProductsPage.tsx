@@ -27,7 +27,7 @@ const ProductsPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('newest')
 
   useEffect(() => {
-    api.get('/products/?limit=200')
+    api.get('/products?limit=200')
       .then(res => setAllProducts(Array.isArray(res.data) ? res.data : []))
       .catch(() => {})
       .finally(() => setLoading(false))

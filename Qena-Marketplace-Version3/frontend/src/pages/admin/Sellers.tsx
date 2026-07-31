@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react'
 import api from '../../api/client'
 
 interface SellerUser {
-  id: number
+  id: string // UUID, not number
   name: string
   email: string
 }
 
 interface Seller {
-  id: number
+  id: string // UUID
   shop_name: string
   shop_description: string
   approved: boolean
@@ -23,12 +23,11 @@ type Tab = 'pending' | 'active' | 'suspended'
 export default function AdminSellers() {
   const [sellers, setSellers] = useState<Seller[]>([])
   const [loading, setLoading] = useState(true)
-  const [actionId, setActionId] = useState<number | null>(null)
   const [suspendReason, setSuspendReason] = useState('')
   const [showSuspendModal, setShowSuspendModal] = useState<Seller | null>(null)
   const [tab, setTab] = useState<Tab>('pending')
-  const [busy, setBusy] = useState<number | null>(null)
-  const [msg, setMsg] = useState<{ id: number; text: string; ok: boolean } | null>(null)
+  const [busy, setBusy] = useState<string | null>(null) // Changed to string
+  const [msg, setMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null) // Changed to string
 
   const fetchSellers = async () => {
     setLoading(true)
@@ -41,15 +40,15 @@ export default function AdminSellers() {
 
   useEffect(() => { fetchSellers() }, [])
 
-  const flash = (id: number, text: string, ok = true) => {
+  const flash = (id: string, text: string, ok = true) => { // Changed parameter to string
     setMsg({ id, text, ok })
     setTimeout(() => setMsg(null), 3000)
   }
 
-  const approveSeller = async (id: number) => {
+  const approveSeller = async (id: string) => { // Changed parameter to string
     setBusy(id)
     try {
-      await api.put(`/admin/sellers/${id}/approve`)
+      await api.post(`/admin/sellers/${id}/approve`)
       setSellers(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s))
       flash(id, 'Approved ✅')
     } catch (e: any) {
@@ -61,7 +60,7 @@ export default function AdminSellers() {
   const suspendSeller = async (seller: Seller) => {
     setBusy(seller.id)
     try {
-      await api.put(`/admin/sellers/${seller.id}/suspend`, { reason: suspendReason || null })
+      await api.post(`/admin/sellers/${seller.id}/suspend`, { reason: suspendReason || null })
       setSellers(prev => prev.map(s =>
         s.id === seller.id
           ? { ...s, is_suspended: true, suspension_reason: suspendReason || null }
@@ -76,10 +75,10 @@ export default function AdminSellers() {
     setBusy(null)
   }
 
-  const unsuspendSeller = async (id: number) => {
+  const unsuspendSeller = async (id: string) => { // Changed parameter to string
     setBusy(id)
     try {
-      await api.put(`/admin/sellers/${id}/unsuspend`)
+      await api.post(`/admin/sellers/${id}/unsuspend`)
       setSellers(prev => prev.map(s =>
         s.id === id
           ? { ...s, is_suspended: false, suspension_reason: null, suspended_at: null }
@@ -104,7 +103,6 @@ export default function AdminSellers() {
       <h1 className="text-2xl font-bold mb-1">Seller Management</h1>
       <p className="text-gray-500 text-sm mb-6">Approve, suspend, or re-activate seller accounts</p>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {([
           { key: 'pending',   label: 'Pending',   count: pending.length,   color: 'yellow' },
@@ -127,7 +125,6 @@ export default function AdminSellers() {
         ))}
       </div>
 
-      {/* List */}
       {loading ? (
         <div className="text-gray-400 text-center py-16">Loading...</div>
       ) : current.length === 0 ? (
@@ -150,7 +147,6 @@ export default function AdminSellers() {
               }`}>
 
               <div className="flex items-start justify-between gap-4">
-                {/* Info */}
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center
                     font-bold text-orange-600 text-lg shrink-0">
@@ -181,7 +177,6 @@ export default function AdminSellers() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
                   {msg?.id === s.id && (
                     <span className={`text-xs font-medium ${msg.ok ? 'text-green-600' : 'text-red-500'}`}>
@@ -189,7 +184,6 @@ export default function AdminSellers() {
                     </span>
                   )}
 
-                  {/* Pending → Approve */}
                   {!s.approved && !s.is_suspended && (
                     <button onClick={() => approveSeller(s.id)} disabled={busy === s.id}
                       className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold
@@ -198,7 +192,6 @@ export default function AdminSellers() {
                     </button>
                   )}
 
-                  {/* Active → Suspend */}
                   {s.approved && !s.is_suspended && (
                     <button onClick={() => setShowSuspendModal(s)} disabled={busy === s.id}
                       className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl
@@ -207,7 +200,6 @@ export default function AdminSellers() {
                     </button>
                   )}
 
-                  {/* Suspended → Re-activate */}
                   {s.is_suspended && (
                     <button onClick={() => unsuspendSeller(s.id)} disabled={busy === s.id}
                       className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold
@@ -222,7 +214,6 @@ export default function AdminSellers() {
         </div>
       )}
 
-      {/* Suspend Modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
           onClick={e => { if (e.target === e.currentTarget) setShowSuspendModal(null) }}>

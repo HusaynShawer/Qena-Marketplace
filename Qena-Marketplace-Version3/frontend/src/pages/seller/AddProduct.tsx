@@ -19,7 +19,7 @@ const AddProduct: React.FC = () => {
   })
 
   useEffect(() => {
-    api.get('/categories/')
+    api.get('/category/get_all')
       .then(res => setCategories(res.data))
       .catch(() => setError('Failed to load categories.'))
   }, [])
@@ -53,16 +53,18 @@ const AddProduct: React.FC = () => {
       if (form.category_id) formData.append('category_id', form.category_id)
       if (imageFile) formData.append('image', imageFile)
 
-      await api.post('/products/', formData, {
+      await api.post('/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
+
       navigate('/seller/products')
+
     } catch (e: any) {
       const msg = e.response?.data?.detail || 'Failed to add product. Please try again.'
       setError(msg)
       if (e.response?.status === 403) {
         if (msg.includes('apply') || msg.includes('profile')) {
-          setTimeout(() => navigate('/seller/setup'), 2000)
+          setTimeout(() => navigate('/sellers/apply'), 2000)
         }
       }
     }

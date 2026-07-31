@@ -24,8 +24,10 @@ class ProductRepository:
         results = await self.session.execute(stmt)
         return results.scalars().all()
 
-    async def get_all(self)->list[Product]:
+    async def get_all(self, limit: int | None = None) -> list[Product]:
         stmt = select(Product)
+        if limit:
+            stmt = stmt.limit(limit)
         results = await self.session.execute(stmt)
         return results.scalars().all()
 

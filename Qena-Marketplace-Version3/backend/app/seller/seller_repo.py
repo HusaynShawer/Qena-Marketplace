@@ -1,6 +1,7 @@
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.seller import Seller
+from app.models import Seller,Product
 from uuid import UUID
 
 
@@ -14,6 +15,11 @@ class SellerRepository:
         await self.session.refresh(seller)
         return seller
 
+    async def get_seller_products(self, seller_id: UUID) -> list[Product]:
+        stmt = select(Product).where(Product.seller_id == seller_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+    
     async def get_by_seller_id(self,seller_id:UUID)->Seller|None:
         stmt = select(Seller).where(Seller.id == seller_id)
         result = await self.session.execute(stmt)
@@ -31,7 +37,6 @@ class SellerRepository:
     
     async def save(self,seller:Seller)->Seller:
         await self.session.flush()
-        await self.session.refresh(seller)
         return seller
 
     async def delete(self,seller:Seller):

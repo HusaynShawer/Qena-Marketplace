@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import get_db
 from app.models.user import User
 from app.models.product import Product
@@ -11,45 +10,53 @@ from uuid import UUID
 
 product_router = APIRouter(prefix="/products", tags=["Products"])
 
-
 # ------------------------------------------------------------------
 # Public
 # ------------------------------------------------------------------
 
-@product_router.get("", response_model=list[ProductResponse], summary="List all products")
+from fastapi import Query
+
+@product_router.get("", response_model=list[ProductResponse])
 async def get_products(
+    limit: int = Query(default=None),
     session: AsyncSession = Depends(get_db),
 ):
-    """Return all available products. Raises 404 if none exist."""
     service = ProductService(session)
-    return await service.get_products()
-
+    return await service.get_products(limit=limit)
 
 @product_router.get("/{product_id}", response_model=ProductResponse, summary="Get product by ID")
 async def get_product(
     product_id: UUID,
     session: AsyncSession = Depends(get_db),
 ):
-    """Return a single product by its ID. Raises 404 if not found."""
     service = ProductService(session)
     return await service.get_product(product_id)
-
 
 # ------------------------------------------------------------------
 # Seller
 # ------------------------------------------------------------------
 
-@product_router.post("", response_model=ProductResponse, summary="Create a product", status_code=201)
+@product_router.post("", response_model=ProductResponse, status_code=201)
 async def create_product(
-    body: ProductCreate,
+    name: str = Form(...),
+    description: str = Form(None),
+    price: float = Form(...),
+    stock: int = Form(...),
+    category_id: str = Form(None),
+    image: UploadFile = File(None),
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):
-    """Create a new product under the authenticated seller's account."""
     service = ProductService(session)
-    product = Product(**body.model_dump(), seller_id=current_user.id)
-    return await service.create(product)
-
+    return await service.create(
+        name=name,
+        description=description,
+        price=price,
+        stock=stock,
+        category_id=category_id,
+        image=image,
+        current_user=current_user
+    )
 
 @product_router.patch("/{product_id}", response_model=ProductResponse, summary="Update a product")
 async def update_product(
@@ -58,18 +65,8 @@ async def update_product(
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):
-    """
-    Partially update a product's fields.
-    Only the owning seller can update. Raises 400 if price ≤ 0 or stock < 0.
-    """
     service = ProductService(session)
-    product = await service.get_product(product_id)
-
-    if product.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    return await service.update_product(product_id, body)
-
+    return await service.update_product(product_id=product_id, update=body, current_user=current_user)
 
 @product_router.delete("/{product_id}", summary="Delete a product", status_code=204)
 async def delete_product(
@@ -77,14 +74,5 @@ async def delete_product(
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):
-    """
-    Delete a product by ID. Returns 204 No Content on success.
-    Only the owning seller can delete.
-    """
     service = ProductService(session)
-    product = await service.get_product(product_id)
-
-    if product.seller_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    await service.delete(product)
+    await service.delete(product_id, current_user)

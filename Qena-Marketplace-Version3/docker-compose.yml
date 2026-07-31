@@ -13,7 +13,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qena_user}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-qena_user} -d ${POSTGRES_DB:-qena_marketplace}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,16 +29,18 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-qena_user}:${POSTGRES_PASSWORD:-qena_pass}@postgres:5432/${POSTGRES_DB:-qena_marketplace}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-qena_user}:${POSTGRES_PASSWORD:-qena_pass}@postgres:5432/${POSTGRES_DB:-qena_marketplace}
       SECRET_KEY: ${SECRET_KEY}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      UPLOAD_DIR: /app/static/uploads 
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - product_images:/app/static/uploads
     restart: unless-stopped
 
   frontend:
@@ -53,3 +59,4 @@ services:
 
 volumes:
   postgres_data:
+  product_images:

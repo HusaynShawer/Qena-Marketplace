@@ -16,7 +16,7 @@ const SellerProducts: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get('/products/seller/my-products')
+    api.get('/sellers/me/products')
       .then(res => setProducts(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))

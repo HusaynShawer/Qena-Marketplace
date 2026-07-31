@@ -1,5 +1,7 @@
 from app.models.order import Order
 from fastapi import HTTPException
+from app.models import User, Seller
+from sqlalchemy.ext.asyncio import AsyncSession
 
 def _buyer_info_dict(self, order: Order):
     buyer = order.buyer
@@ -41,3 +43,33 @@ def raise_unauthorized(detail: str):
         status_code=401,
         detail=detail,
     )
+def _seller_dict(s: Seller) -> dict:
+        return {
+            "id": s.id,
+            "shop_name": s.shop_name,
+            "shop_description": s.shop_description,
+            "approved": s.approved,
+            "is_suspended": s.is_suspended,
+            "suspension_reason": s.suspension_reason,
+            "suspended_at": s.suspended_at.isoformat() if s.suspended_at else None,
+            "user": {
+                "id": s.user.id,
+                "name": s.user.name,
+                "email": s.user.email,
+            } if s.user else None,
+        }
+def require_admin(current_user: User):
+    if current_user.role.value != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+async def _get_seller_or_404(seller_id: int, db: AsyncSession) -> Seller:
+
+    from app.seller.seller_repo import SellerRepository
+
+    seller_repo = SellerRepository(db)
+    seller = await seller_repo.get_by_seller_id(seller_id)
+
+    if not seller:
+        raise_not_found("Seller Not Found")
+    return seller

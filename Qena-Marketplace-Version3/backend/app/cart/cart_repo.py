@@ -1,8 +1,10 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.cart import Cart
-from uuid import UUID
 
 
 class CartRepository:
@@ -21,54 +23,63 @@ class CartRepository:
     async def get_user_cart(
         self,
         user_id: UUID,
+    ) -> list[Cart]:
+        stmt = (
+            select(Cart)
+            .options(selectinload(Cart.product))
+            .where(Cart.user_id == user_id)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_cart_item(
+        self,
+        user_id: UUID,
+        product_id: UUID,
     ) -> Cart | None:
-        stmt = select(Cart).where(Cart.user_id == user_id)
+        stmt = (
+            select(Cart)
+            .options(selectinload(Cart.product))
+            .where(
+                Cart.user_id == user_id,
+                Cart.product_id == product_id,
+            )
+        )
 
         result = await self.session.execute(stmt)
-
         return result.scalar_one_or_none()
-
-
-    async def get_cart_item(self,user_id: UUID,product_id: UUID):
-        stmt = select(Cart).where(Cart.user_id == user_id,
-                                  Cart.product_id ==product_id)
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
 
     async def get_by_id(
         self,
         cart_id: UUID,
     ) -> Cart | None:
-        stmt = select(Cart).where(Cart.id == cart_id)
+        stmt = (
+            select(Cart)
+            .options(selectinload(Cart.product))
+            .where(Cart.id == cart_id)
+        )
 
         result = await self.session.execute(stmt)
-
         return result.scalar_one_or_none()
 
     async def clear_cart(
         self,
         user_id: UUID,
-    ):
-        """
-        NOTE:
-        This implementation deletes the Cart record itself.
-        If your project has a CartItem model (recommended),
-        this function should delete CartItems instead.
-        """
+    ) -> None:
+        carts = await self.get_user_cart(user_id)
 
-        cart = await self.get_user_cart(user_id)
+        for cart in carts:
+            await self.session.delete(cart)
 
-        if not cart:
-            return
-
-        await self.session.delete(cart)
         await self.session.flush()
 
-    async def delete(self,cart:Cart)->None:
+    async def delete(
+        self,
+        cart: Cart,
+    ) -> None:
         await self.session.delete(cart)
         await self.session.flush()
-
 
     async def save(
         self,
