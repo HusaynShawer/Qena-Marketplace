@@ -134,7 +134,7 @@ class AdminRepo:
 
         financials = []
         for seller in sellers:
-            wallet = seller.wallet
+            wallet = seller.wallet[0] if seller.wallet else None
 
             orders_count_stmt = select(func.count(Order.id)).where(Order.seller_id == seller.id)
             orders_count = await self.session.scalar(orders_count_stmt) or 0
@@ -157,5 +157,5 @@ class AdminRepo:
         return financials
 
     async def save(self, seller: Seller):
-        self.session.flush(seller)
+        self.session.add(seller)
         await self.session.flush()
