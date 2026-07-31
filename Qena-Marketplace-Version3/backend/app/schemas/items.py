@@ -9,4 +9,3 @@ class CartItemCreate(BaseModel):
 
 class CartItemUpdate(BaseModel):
     quantity: int
-    product_id: UUID
