@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     if (!user) { navigate('/login'); return }
     setAdding(true)
-    await addToCart(Number(id), quantity)
+    await addToCart(id, quantity)
     setAdding(false)
   }
 

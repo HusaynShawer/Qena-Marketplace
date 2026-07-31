@@ -30,7 +30,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => { fetchCart() }, [token])
 
-  const addToCart = async (productId: number, quantity: number = 1) => {
+  const addToCart = async (productId: string, quantity: number = 1) => {
     try {
       await api.post('/cart/', { product_id: productId, quantity })
       await fetchCart()

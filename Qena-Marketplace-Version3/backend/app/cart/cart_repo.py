@@ -63,6 +63,24 @@ class CartRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    # ✅ دالة جديدة — البحث بـ cart item id و user_id معاً
+    async def get_cart_item_by_id(
+        self,
+        item_id: UUID,
+        user_id: UUID,
+    ) -> Cart | None:
+        stmt = (
+            select(Cart)
+            .options(selectinload(Cart.product))
+            .where(
+                Cart.id == item_id,
+                Cart.user_id == user_id,
+            )
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def clear_cart(
         self,
         user_id: UUID,

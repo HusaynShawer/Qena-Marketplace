@@ -25,7 +25,7 @@ async def get_cart(
     return await service.get_cart(current_user=current_user)
 
 
-@cart_router.post("/cart")
+@cart_router.post("/")
 async def add_to_cart(
     item: CartItemCreate,
     current_user: User = Depends(get_current_user),
@@ -38,34 +38,35 @@ async def add_to_cart(
     )
 
 
-@cart_router.put("/cart/{product_id}")
+@cart_router.put("/{item_id}")
 async def update_quantity(
-    product_id: UUID,
+    item_id: UUID,
     update: CartItemUpdate,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
     service = CartService(session=session)
     return await service.update_quantity(
+        item_id=item_id,        
+        quantity=update.quantity,
         current_user=current_user,
-        update_data=update,
     )
 
 
-@cart_router.delete("/cart/{product_id}")
+@cart_router.delete("/{item_id}")
 async def delete_item(
-    product_id: UUID,
+    item_id: UUID,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ):
     service = CartService(session=session)
     return await service.delete_item(
-        product_id=product_id,
+        item_id=item_id,
         current_user=current_user,
     )
 
 
-@cart_router.delete("/cart")
+@cart_router.delete("/")
 async def clear_cart(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
