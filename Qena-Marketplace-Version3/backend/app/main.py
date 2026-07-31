@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -8,6 +9,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.utils.logging import setup_logging
 from app.routers.api import api_router
+import os 
 
 setup_logging()
 
@@ -27,6 +29,12 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan, 
 )
+
+
+os.makedirs("static", exist_ok=True)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+# ==============================================
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

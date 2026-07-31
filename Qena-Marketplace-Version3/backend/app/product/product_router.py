@@ -14,12 +14,15 @@ product_router = APIRouter(prefix="/products", tags=["Products"])
 # Public
 # ------------------------------------------------------------------
 
-@product_router.get("", response_model=list[ProductResponse], summary="List all products")
+from fastapi import Query
+
+@product_router.get("", response_model=list[ProductResponse])
 async def get_products(
+    limit: int = Query(default=None),
     session: AsyncSession = Depends(get_db),
 ):
     service = ProductService(session)
-    return await service.get_products()
+    return await service.get_products(limit=limit)
 
 @product_router.get("/{product_id}", response_model=ProductResponse, summary="Get product by ID")
 async def get_product(

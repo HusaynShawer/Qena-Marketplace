@@ -31,7 +31,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100)
-    fetch(`${API}/products?limit=8`)
+    fetch(`${API}/api/products?limit=8`)
       .then(r => r.json())
       .then(d => { setProducts(Array.isArray(d) ? d : []); setLoading(false) })
       .catch(() => setLoading(false))

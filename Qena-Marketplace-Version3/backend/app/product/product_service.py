@@ -11,13 +11,16 @@ import uuid
 import aiofiles
 from fastapi import UploadFile
 from app.core.config import settings
+from pathlib import Path
+
 
 class ProductService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.product_repo = ProductRepository(session=session)
         self.seller_repo = SellerRepository(session=session)
-        self.upload_dir = os.getenv("UPLOAD_DIR", "/app/static/uploads/products")
+        
+        self.upload_dir = os.getenv("UPLOAD_DIR", "/app/static/uploads")
 
     async def create(
         self,
@@ -27,36 +30,45 @@ class ProductService:
         stock: int,
         category_id: str | None,
         image: UploadFile | None,
-        current_user: User
+        current_user: User,
     ) -> Product:
+
         seller = await self.seller_repo.get_by_user_id(current_user.id)
         if not seller:
             raise_not_found("No seller exists")
 
         image_url = None
-        if image:
-            os.makedirs(self.upload_dir, exist_ok=True)
-            file_extension = image.filename.split(".")[-1] if image.filename and "." in image.filename else "jpg"
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
-            file_path = os.path.join(self.upload_dir, unique_filename)
-            
-            async with aiofiles.open(file_path, "wb") as out_file:
-                content = await image.read()
-                await out_file.write(content)
-            
-            image_url = f"/static/uploads/products/{unique_filename}"
 
-        product_data = {
-            "name": name,
-            "description": description,
-            "price": price,
-            "stock": stock,
-            "category_id": category_id,
-            "seller_id": seller.id,
-            "image_url": image_url,
-        }
-        product = Product(**product_data)
-        return await self.product_repo.create(product=product)
+        if image:
+            upload_dir = Path(self.upload_dir) / "products"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            extension = (
+                image.filename.split(".")[-1]
+                if image.filename and "." in image.filename
+                else "jpg"
+            )
+
+            filename = f"{uuid.uuid4()}.{extension}"
+            file_path = upload_dir / filename
+
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(await image.read())
+
+            # This URL perfectly matches the actual filesystem location now.
+            image_url = f"/static/uploads/products/{filename}"
+
+        product = Product(
+            name=name,
+            description=description,
+            price=price,
+            stock=stock,
+            category_id=category_id,
+            seller_id=seller.id,
+            image_url=image_url,
+        )
+
+        return await self.product_repo.create(product)
 
     async def get_product(self, product_id: UUID) -> Product:
         product = await self.product_repo.get_by_id(product_id=product_id)
@@ -64,8 +76,8 @@ class ProductService:
             raise_not_found("Product not found")
         return product
 
-    async def get_products(self) -> list[Product]:
-        product = await self.product_repo.get_all()
+    async def get_products(self, limit) -> list[Product]:
+        product = await self.product_repo.get_all(limit)
         if not product:
             raise_not_found("No products available")
         return product
@@ -95,7 +107,16 @@ class ProductService:
         product = await self.product_repo.get_by_id(product_id)
         if not product:
             raise_not_found("Product Not Found")
+        
         seller = await self.seller_repo.get_by_user_id(current_user.id)
         if not seller:
             raise_not_found("Seller Not Found")
+
+        if product.image_url:
+            file_name = os.path.basename(product.image_url)
+            if file_name:
+                file_path = Path(self.upload_dir) / "products" / file_name
+                if file_path.exists():
+                    file_path.unlink()  
+
         return await self.product_repo.delete(product=product)
