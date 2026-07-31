@@ -14,10 +14,26 @@ class CartService:
         self.cart_repo = CartRepository(session=session)
         self.product_repo = ProductRepository(session=session)
 
-    async def get_cart(self,current_user:User)->Cart:
-        # current_user.id is a UUID
-        cart = await self.cart_repo.get_user_cart(current_user.id)
-        return cart
+    async def get_cart(self, current_user: User) -> dict:
+        cart_items = await self.cart_repo.get_user_cart(current_user.id)
+        
+        items = []
+        for cart_item in cart_items:
+            product = await self.product_repo.get_by_id(cart_item.product_id)
+            items.append({
+                "id": cart_item.id,
+                "quantity": cart_item.quantity,
+                "product": {
+                    "id": str(product.id),
+                    "name": product.name,
+                    "price": product.price,
+                    "image_url": product.image_url,
+                    "stock": product.stock,
+                }
+            })
+        
+        total = sum(i["product"]["price"] * i["quantity"] for i in items)
+        return {"items": items, "total": round(total, 2)}
     
     async def add_to_cart(self,item:CartItemCreate,current_user:User)-> dict:
         product = await self.product_repo.get_by_id(item.product_id)
@@ -45,13 +61,11 @@ class CartService:
         
         return {"message": "Added to cart"}
 
-    async def delete_item(self,product_id:UUID,current_user:User)-> dict:
-        cart = await self.cart_repo.get_cart_item(user_id=current_user.id,
-                                            product_id=product_id)
+
+    async def delete_item(self, item_id: int, current_user: User) -> dict:
+        cart = await self.cart_repo.get_cart_item_by_id(item_id, current_user.id)
         if not cart:
-            raise HTTPException(
-                            status_code=404, detail="Cart item not found"
-                        )
+            raise HTTPException(status_code=404, detail="Cart item not found")
         await self.cart_repo.delete(cart=cart)
         return {"message": "cart item was deleted"}
 

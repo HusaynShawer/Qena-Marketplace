@@ -25,7 +25,7 @@ async def get_cart(
     return await service.get_cart(current_user=current_user)
 
 
-@cart_router.post("/cart")
+@cart_router.post("/")
 async def add_to_cart(
     item: CartItemCreate,
     current_user: User = Depends(get_current_user),
