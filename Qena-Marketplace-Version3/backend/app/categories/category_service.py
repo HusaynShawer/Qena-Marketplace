@@ -42,3 +42,7 @@ class CategoryService:
             raise
             
         raise_bad_request("only admin can add new categories")
+
+    async def category_products(self,cat_id:UUID):
+        prodcuts = await self.cat_repo.category_products(cat_id)
+        return prodcuts

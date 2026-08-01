@@ -74,6 +74,10 @@ class CartService:
         if not cart:
             raise HTTPException(status_code=404, detail="Cart item not found")
 
+        product = await self.product_repo.get_by_id(cart.product_id)
+        if product:
+            product.stock += cart.quantity 
+
         await self.cart_repo.delete(cart=cart)
 
         try:
@@ -83,7 +87,7 @@ class CartService:
             raise HTTPException(status_code=500, detail="Failed to delete item")
 
         return {"message": "Cart item was deleted"}
-
+    
     async def update_quantity(self, item_id: UUID, quantity: int, current_user: User) -> Cart:
         cart = await self.cart_repo.get_cart_item_by_id(item_id, current_user.id)
         if not cart:
@@ -111,9 +115,14 @@ class CartService:
         return cart
 
     async def clear_cart(self, current_user: User) -> dict:
-        cart = await self.cart_repo.get_user_cart(current_user.id)
-        if not cart:
+        cart_items = await self.cart_repo.get_user_cart(current_user.id)
+        if not cart_items:
             raise HTTPException(status_code=400, detail="Cart is already empty")
+
+        for cart_item in cart_items:
+            product = await self.product_repo.get_by_id(cart_item.product_id)
+            if product:
+                product.stock += cart_item.quantity
 
         await self.cart_repo.clear_cart(current_user.id)
 

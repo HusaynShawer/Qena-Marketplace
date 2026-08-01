@@ -104,5 +104,4 @@ class CartRepository:
         cart: Cart,
     ) -> Cart:
         await self.session.flush()
-        await self.session.refresh(cart)
         return cart

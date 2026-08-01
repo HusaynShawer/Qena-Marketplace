@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import api from '../api/client'
@@ -20,54 +20,85 @@ const ProductsPage: React.FC = () => {
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState(searchParams.get('search') || '')
-  const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || '')
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
 
+  // Read all filters from URL
+  const activeCategory = searchParams.get('category') || ''
+  const search = searchParams.get('search') || ''
+  const minPrice = searchParams.get('minPrice') || ''
+  const maxPrice = searchParams.get('maxPrice') || ''
+  const sortBy = searchParams.get('sort') || 'newest'
+
+  // Local state for inputs (so typing doesn't lag)
+  const [searchInput, setSearchInput] = useState(search)
+  const [minInput, setMinInput] = useState(minPrice)
+  const [maxInput, setMaxInput] = useState(maxPrice)
+
+  // Debounce search input
   useEffect(() => {
-    api.get('/products?limit=200')
+    const timer = setTimeout(() => {
+      const newParams = new URLSearchParams(searchParams)
+      if (searchInput.trim()) newParams.set('search', searchInput.trim())
+      else newParams.delete('search')
+      setSearchParams(newParams)
+    }, 400) // 400ms debounce
+
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // Fetch from API whenever category or search changes
+  useEffect(() => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    params.append('limit', '200')
+    if (activeCategory) params.append('category', activeCategory)
+    if (search) params.append('search', search)
+
+    api.get(`/products?${params.toString()}`)
       .then(res => setAllProducts(Array.isArray(res.data) ? res.data : []))
-      .catch(() => {})
+      .catch(() => setAllProducts([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeCategory, search])
 
-  // Sync URL params when they change (e.g. clicking category from homepage)
-  useEffect(() => {
-    const cat = searchParams.get('category') || ''
-    const s = searchParams.get('search') || ''
-    setActiveCategory(cat)
-    setSearch(s)
-  }, [searchParams])
-
+  // Client-side: price filter + sort
   useEffect(() => {
     let filtered = [...allProducts]
-    if (activeCategory) {
-      filtered = filtered.filter(p =>
-        p.category && p.category.toLowerCase() === activeCategory.toLowerCase()
-      )
-    }
-    if (search) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(search.toLowerCase())
-      )
-    }
+
     if (minPrice) filtered = filtered.filter(p => p.price >= parseFloat(minPrice))
     if (maxPrice) filtered = filtered.filter(p => p.price <= parseFloat(maxPrice))
-    if (sortBy === 'price_asc') filtered.sort((a, b) => a.price - b.price)
-    if (sortBy === 'price_desc') filtered.sort((a, b) => b.price - a.price)
+
+    if (sortBy === 'newest') {
+      filtered.sort((a, b) => {
+        const da = new Date(a.created_at || 0).getTime()
+        const db = new Date(b.created_at || 0).getTime()
+        return db - da // newest first
+      })
+    } else if (sortBy === 'price_asc') {
+      filtered.sort((a, b) => a.price - b.price)
+    } else if (sortBy === 'price_desc') {
+      filtered.sort((a, b) => b.price - a.price)
+    }
+
     setProducts(filtered)
-  }, [allProducts, activeCategory, search, minPrice, maxPrice, sortBy])
+  }, [allProducts, minPrice, maxPrice, sortBy])
+
+  const updateParam = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams)
+    if (value) newParams.set(key, value)
+    else newParams.delete(key)
+    setSearchParams(newParams)
+  }
 
   const handleCategoryClick = (q: string) => {
-    setSearchParams(q ? { category: q } : {})
+    const newParams = new URLSearchParams(searchParams)
+    if (q) newParams.set('category', q)
+    else newParams.delete('category')
+    setSearchParams(newParams)
   }
 
   const clearFilters = () => {
-    setMinPrice('')
-    setMaxPrice('')
+    setSearchInput('')
+    setMinInput('')
+    setMaxInput('')
     setSearchParams({})
   }
 
@@ -96,31 +127,34 @@ const ProductsPage: React.FC = () => {
           <div className="bg-white p-4 rounded-lg shadow space-y-4">
             <div>
               <h3 className="font-semibold mb-2">Search</h3>
-              <input type="text" placeholder="Search products..." value={search}
-                onChange={e => setSearchParams(e.target.value ? { search: e.target.value } : {})}
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
             </div>
             <div>
               <h3 className="font-semibold mb-2">Price Range (EGP)</h3>
               <div className="flex gap-2">
-                <input type="number" placeholder="Min" value={minPrice}
-                  onChange={e => setMinPrice(e.target.value)}
+                <input type="number" placeholder="Min" value={minInput}
+                  onChange={e => { setMinInput(e.target.value); updateParam('minPrice', e.target.value) }}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
-                <input type="number" placeholder="Max" value={maxPrice}
-                  onChange={e => setMaxPrice(e.target.value)}
+                <input type="number" placeholder="Max" value={maxInput}
+                  onChange={e => { setMaxInput(e.target.value); updateParam('maxPrice', e.target.value) }}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
               </div>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Sort By</h3>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+              <select value={sortBy} onChange={e => updateParam('sort', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                 <option value="newest">Newest First</option>
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
               </select>
             </div>
-            {(activeCategory || search || minPrice || maxPrice) && (
+            {(activeCategory || search || minPrice || maxPrice || sortBy !== 'newest') && (
               <button onClick={clearFilters}
                 className="w-full text-sm text-orange-600 border border-orange-300 rounded-lg py-2 hover:bg-orange-50">
                 ✕ Clear Filters

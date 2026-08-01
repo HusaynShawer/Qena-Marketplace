@@ -19,3 +19,4 @@ async def add_category(cat:catrequest,current_user:User = Depends(get_current_us
     cat_service = CategoryService(db)
     category = await cat_service.add(current_user=current_user,cat = cat)
     return category
+

@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.category import Category
+from app.models import Category, Product
 from uuid import UUID
 
 class CategoryRepository:
@@ -21,6 +21,11 @@ class CategoryRepository:
         stmt = select(Category)
         results = await self.session.execute(stmt) 
         return results.scalars().all()
-
+    
+    async def category_products(self,cat_id:UUID)->list[Product]|None:
+        stmt = select(Product).where(Product.category_id == cat_id,Product.is_active==True) 
+        products = await self.session.execute(stmt)
+        return products.scalars().all()
+    
     async def save(self,cat:Category):
         await self.session.flush()

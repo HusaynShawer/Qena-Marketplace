@@ -30,11 +30,11 @@ export default function Footer() {
           <h4 className="font-bold text-white mb-4">Shop</h4>
           <ul className="space-y-2.5 text-sm">
             {[
-              { to: '/products', label: 'All Products' },
-              { to: '/products?category=electronics', label: 'Electronics' },
-              { to: '/products?category=clothing',    label: 'Clothing' },
-              { to: '/products?category=home',        label: 'Home & Garden' },
-              { to: '/products?category=books',       label: 'Books' },
+              { to: '/api/products', label: 'All Products' },
+              { to: '/api/products?category=electronics', label: 'Electronics' },
+              { to: '/api/products?category=clothing',    label: 'Clothing' },
+              { to: '/api/products?category=home',        label: 'Home & Garden' },
+              { to: '/api/products?category=books',       label: 'Books' },
             ].map(({ to, label }) => (
               <li key={label}><Link to={to} className="hover:text-orange-400 transition-colors">{label}</Link></li>
             ))}

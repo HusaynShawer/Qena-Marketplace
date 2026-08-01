@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Product, User
 from app.product.product_repo import ProductRepository
-from app.Helper.helper_func import raise_not_found, raise_bad_request
+from app.Helper.helper_func import raise_not_found, raise_bad_request,serialize_product
 from app.schemas.product import ProductUpdate
 from uuid import UUID
 from app.seller.seller_repo import SellerRepository
@@ -76,11 +76,31 @@ class ProductService:
             raise_not_found("Product not found")
         return product
 
-    async def get_products(self, limit) -> list[Product]:
-        product = await self.product_repo.get_all(limit)
-        if not product:
+    async def get_products(
+        self,
+        limit: int | None,
+        search: str | None,
+        category: str | None = None
+    ) -> list[dict]:
+        products = await self.product_repo.get_all(
+            limit=limit,
+            search=search,
+            category=category
+        )
+        if not products:
             raise_not_found("No products available")
-        return product
+        
+        result = []
+        for p in products:
+            reviews = p.reviews or []
+            review_count = len(reviews)
+            avg_rating = sum(r.rating for r in reviews) / review_count if review_count else 0.0
+            
+            data = serialize_product(p)
+            data["review_count"] = review_count
+            data["avg_rating"] = round(avg_rating, 1)
+            result.append(data)
+        return result
 
     async def update_product(
         self,
@@ -112,11 +132,14 @@ class ProductService:
         if not seller:
             raise_not_found("Seller Not Found")
 
+        product.is_active = False
+
         if product.image_url:
             file_name = os.path.basename(product.image_url)
             if file_name:
                 file_path = Path(self.upload_dir) / "products" / file_name
                 if file_path.exists():
-                    file_path.unlink()  
+                    file_path.unlink()
 
-        return await self.product_repo.delete(product=product)
+        await self.product_repo.save(product)
+        return {"message": "Product deleted successfully"}

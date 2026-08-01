@@ -22,12 +22,25 @@ class ProductUpdate(BaseModel):
     category_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
-class ProductResponse(ProductBase):
+from pydantic import BaseModel
+from datetime import datetime
+from uuid import UUID
+from typing import Optional
+
+class ProductResponse(BaseModel):
     id: UUID
+    name: str
+    description: Optional[str]
+    price: float
+    stock: int
+    category_id: Optional[UUID]
     seller_id: UUID
-    image_url: Optional[str] = None
+    image_url: Optional[str]
     is_active: bool
     created_at: datetime
-    
+    # الحقول الجديدة:
+    review_count: int = 0
+    avg_rating: float = 0.0
+
     class Config:
-        orm_mode = True
+        from_attributes = True

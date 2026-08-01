@@ -30,8 +30,8 @@ export default function SellerWallet() {
   const fetchData = async () => {
     try {
       const [w, wd] = await Promise.all([
-        api.get('/wallet/me'),
-        api.get('/wallet/withdrawals'),
+        api.get('/wallet'),
+        api.get('/wallet/withdrawals'), 
       ])
       setWallet(w.data)
       setWithdrawals(wd.data)

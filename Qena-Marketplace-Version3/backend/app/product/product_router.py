@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -18,11 +20,13 @@ from fastapi import Query
 
 @product_router.get("", response_model=list[ProductResponse])
 async def get_products(
-    limit: int = Query(default=None),
+    limit: Optional[int] = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None),
     session: AsyncSession = Depends(get_db),
 ):
     service = ProductService(session)
-    return await service.get_products(limit=limit)
+    return await service.get_products(limit=limit, search=search, category=category)
 
 @product_router.get("/{product_id}", response_model=ProductResponse, summary="Get product by ID")
 async def get_product(

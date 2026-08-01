@@ -12,6 +12,7 @@ from app.schemas.wallet import (
     WalletTransactionResponse,
 )
 from app.wallet.wallet_repo import WalletRepository
+from app.seller.seller_repo import SellerRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from fastapi import HTTPException
@@ -22,7 +23,7 @@ class WalletService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.wallet_repo = WalletRepository(session)
-
+        self.seller_repo = SellerRepository(session)
     # --------------------------------------------------------
     # Wallet
     # --------------------------------------------------------
@@ -67,90 +68,73 @@ class WalletService:
         await self.wallet_repo.save(wallet)
         await self.wallet_repo.create_transaction(transaction)
 
-    async def get_wallet(
-        self,
-        current_user: User,
-    ) -> Wallet:
+    async def get_wallet(self, current_user: User) -> Wallet:
+        seller = await self.seller_repo.get_by_user_id(current_user.id)
+        if not seller:
+            raise HTTPException(status_code=404, detail="Seller not found.")
 
-        wallet = await self.wallet_repo.get_by_seller_id(
-            seller_id=current_user.id
-        )
-
+        wallet = await self.wallet_repo.get_by_seller_id(seller_id=seller.id)
         if not wallet:
-            raise HTTPException(
-                status_code=404,
-                detail="Wallet not found.",
-            )
+            raise HTTPException(status_code=404, detail="Wallet not found.")
 
         return wallet
+    
+    async def get_transactions(self, current_user: User) -> list[WalletTransaction]:
+        seller = await self.seller_repo.get_by_user_id(current_user.id)
+        if not seller:
+            raise HTTPException(status_code=404, detail="Seller not found.")
 
-    async def get_transactions(
-        self,
-        current_user: User,
-    ) -> list[WalletTransaction]:
-
-        wallet = await self.wallet_repo.get_by_seller_id(
-            seller_id=current_user.id
-        )
-
+        wallet = await self.wallet_repo.get_by_seller_id(seller_id=seller.id)
         if not wallet:
-            raise HTTPException(
-                status_code=404,
-                detail="Wallet not found.",
-            )
+            raise HTTPException(status_code=404, detail="Wallet not found.")
 
-        return await self.wallet_repo.get_transactions_by_wallet_id(
-            wallet.id
-        )
-
+        return await self.wallet_repo.get_transactions_by_wallet_id(wallet.id)
     # --------------------------------------------------------
     # Withdrawal Requests
     # --------------------------------------------------------
 
     async def request_withdraw(
         self,
-        seller_id: UUID,
-        request: WithdrawalRequest,
+        user: UUID,
+        request: WithdrawalRequestCreate,
     ) -> WithdrawalRequest:
 
-        wallet = await self.wallet_repo.get_by_seller_id(
-            seller_id=seller_id
-        )
+        seller = await self.seller_repo.get_by_user_id(user)
+        if not seller:
+            raise HTTPException(status_code=404, detail="Seller not found")
 
+        wallet = await self.wallet_repo.get_by_seller_id(seller_id=seller.id)
         if not wallet:
-            raise HTTPException(
-                status_code=404,
-                detail="Wallet not found.",
-            )
+            wallet = Wallet(seller_id=seller.id, balance=0, total_earned=0)
+            await self.wallet_repo.create(wallet)
 
         if wallet.balance < request.amount:
-            raise HTTPException(
-                status_code=400,
-                detail="Insufficient wallet balance.",
-            )
+            raise HTTPException(status_code=400, detail="Insufficient wallet balance.")
 
-        pending = await self.wallet_repo.get_pending_withdraw(
-            seller_id=seller_id
+        pending = await self.wallet_repo.get_pending_withdraw(seller_id=seller.id)
+        if pending:
+            raise HTTPException(status_code=400, detail="You already have a pending withdrawal request.")
+
+        withdrawal = WithdrawalRequest(
+            seller_id=seller.id,
+            amount=request.amount,
+            method=request.method,                  
+            account_number=request.account_number,
+            status=WithdrawalStatus.PENDING,
         )
 
-        if pending:
-            raise HTTPException(
-                status_code=400,
-                detail="You already have a pending withdrawal request.",
-            )
-
-        request.seller_id = seller_id
-        request.status = WithdrawalStatus.PENDING
-
-        return await self.wallet_repo.request_withdraw(request)
+        return await self.wallet_repo.request_withdraw(withdrawal)
 
     async def get_pending_withdraw(
         self,
-        seller_id: UUID,
+        user_id: UUID,
     ) -> WithdrawalRequest | None:
 
+        seller = await self.seller_repo.get_by_user_id(user_id)
+        if not seller:
+            raise HTTPException(status_code=404, detail="Seller not found")
         return await self.wallet_repo.get_pending_withdraw(
-            seller_id=seller_id
+            seller_id=seller.id
         )
 
     async def admin_get_pending_withdraw(
@@ -241,3 +225,9 @@ class WalletService:
         await self.wallet_repo.save_withdraw(request)
 
         return request
+
+    async def get_seller_withdrawals(self, user_id: UUID):
+        seller = await self.seller_repo.get_by_user_id(user_id)
+        if not seller:
+            raise HTTPException(status_code=404, detail="Seller not found")
+        return await self.wallet_repo.get_withdrawals_by_seller_id(seller.id)

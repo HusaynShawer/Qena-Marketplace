@@ -133,6 +133,14 @@ class WalletRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_withdrawals_by_seller_id(self, seller_id: UUID):
+        result = await self.session.execute(
+            select(WithdrawalRequest)
+            .where(WithdrawalRequest.seller_id == seller_id)
+            .order_by(WithdrawalRequest.created_at.desc())
+        )
+        return result.scalars().all()
+
     async def save_withdraw(
         self,
         request: WithdrawalRequest,
