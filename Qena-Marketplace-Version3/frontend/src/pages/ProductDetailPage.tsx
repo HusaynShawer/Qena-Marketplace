@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
+import ReviewForm from '../components/ReviewForm'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -33,6 +34,15 @@ export default function ProductDetailPage() {
     await addToCart(id, quantity)
     setAdding(false)
   }
+
+  const refreshReviews = () => {
+    api.get(`/products/${id}/reviews`).then(r => setReviews(r.data))
+  }
+
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+    : 0
+  const fullStars = Math.round(avgRating)
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -86,8 +96,13 @@ export default function ProductDetailPage() {
 
               {/* Rating */}
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex text-yellow-400 text-lg">{'★'.repeat(4)}{'☆'.repeat(1)}</div>
-                <span className="text-sm text-gray-500">({reviews.length} reviews)</span>
+                <div className="flex text-yellow-400 text-lg">
+                  {'★'.repeat(fullStars)}{'☆'.repeat(5 - fullStars)}
+                </div>
+                <span className="text-sm text-gray-500">
+                  {avgRating > 0 && <span className="font-semibold text-slate-700 mr-1">{avgRating.toFixed(1)}</span>}
+                  ({reviews.length} {reviews.length === 1 ? 'تقييم' : 'تقييمات'})
+                </span>
               </div>
 
               {/* Price */}
@@ -207,24 +222,43 @@ export default function ProductDetailPage() {
 
             {activeTab === 'reviews' && (
               <div>
+                {user ? (
+                  <ReviewForm productId={id!} onReviewAdded={refreshReviews} />
+                ) : (
+                  <div className="bg-orange-50 p-4 rounded-xl mb-6 text-center">
+                    <p className="text-sm text-orange-800">
+                      سجل دخول عشان تقدر تضيف تقييم{' '}
+                      <button onClick={() => navigate('/login')} className="font-bold underline">
+                        تسجيل الدخول
+                      </button>
+                    </p>
+                  </div>
+                )}
+
                 {reviews.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-5xl mb-3">⭐</div>
-                    <p className="text-gray-500">No reviews yet. Be the first!</p>
+                    <p className="text-gray-500">مافيش تقييمات لسه. كن الأول!</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {reviews.map(r => (
-                      <div key={r.id} className="border-b pb-4">
+                    {reviews.map((r) => (
+                      <div key={r.id} className="border-b last:border-0 pb-4">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center font-bold text-orange-600 text-sm">
-                            {r.user_name[0].toUpperCase()}
+                            {r.user_name?.[0]?.toUpperCase() || '؟'}
                           </div>
-                          <span className="font-semibold text-sm">{r.user_name}</span>
-                          <span className="text-yellow-400">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                          <span className="font-semibold text-sm text-slate-700">{r.user_name}</span>
+                          <span className="text-yellow-400 text-sm">
+                            {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                          </span>
                         </div>
-                        <p className="text-gray-600 text-sm ml-10">{r.comment}</p>
-                        <p className="text-xs text-gray-400 ml-10 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
+                        {r.comment && (
+                          <p className="text-gray-600 text-sm ml-10">{r.comment}</p>
+                        )}
+                        <p className="text-xs text-gray-400 ml-10 mt-1">
+                          {new Date(r.created_at).toLocaleDateString('ar-EG')}
+                        </p>
                       </div>
                     ))}
                   </div>

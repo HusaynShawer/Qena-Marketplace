@@ -89,7 +89,18 @@ class ProductService:
         )
         if not products:
             raise_not_found("No products available")
-        return [serialize_product(p) for p in products]
+        
+        result = []
+        for p in products:
+            reviews = p.reviews or []
+            review_count = len(reviews)
+            avg_rating = sum(r.rating for r in reviews) / review_count if review_count else 0.0
+            
+            data = serialize_product(p)
+            data["review_count"] = review_count
+            data["avg_rating"] = round(avg_rating, 1)
+            result.append(data)
+        return result
 
     async def update_product(
         self,

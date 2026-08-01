@@ -60,6 +60,7 @@ class ProductRepository:
             .options(
                 selectinload(Product.category),
                 selectinload(Product.seller),
+                selectinload(Product.reviews),
             )
             .where(*conditions)
         )
@@ -74,7 +75,6 @@ class ProductRepository:
 
         results = await self.session.execute(stmt)
         return results.scalars().all()
-
 
     async def update(self, product: Product) -> Product:
         return await self.save(product)
