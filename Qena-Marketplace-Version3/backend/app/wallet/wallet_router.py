@@ -42,7 +42,7 @@ async def get_transactions(
 
 @wallet_router.post("/withdraw", summary="Request a withdrawal")
 async def request_withdraw(
-    request: WithdrawalRequestCreate,  # ✅ Pydantic schema, not SQLAlchemy model
+    request: WithdrawalRequestCreate,
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
 ):
@@ -62,6 +62,15 @@ async def get_pending_withdraw(
     """Return the seller's current pending withdrawal request, or null if none."""
     service = WalletService(session)
     return await service.get_pending_withdraw(current_user.id)
+
+
+@wallet_router.get("/withdrawals", summary="Get my withdrawal requests")
+async def get_my_withdrawals(
+    current_user: User = Depends(require_role("seller")),
+    session: AsyncSession = Depends(get_db),
+):
+    service = WalletService(session)
+    return await service.get_seller_withdrawals(current_user.id)
 
 
 # ------------------------------------------------------------------
@@ -107,3 +116,4 @@ async def reject_withdraw(
     """
     service = WalletService(session)
     return await service.reject_withdraw(request_id, admin_note)
+

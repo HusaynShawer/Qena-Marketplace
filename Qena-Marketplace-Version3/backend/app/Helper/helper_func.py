@@ -3,6 +3,9 @@ from fastapi import HTTPException
 from app.models import User, Seller
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import Product
+from app.schemas.product import ProductResponse
+
 def _buyer_info_dict(self, order: Order):
     buyer = order.buyer
 
@@ -73,3 +76,25 @@ async def _get_seller_or_404(seller_id: int, db: AsyncSession) -> Seller:
     if not seller:
         raise_not_found("Seller Not Found")
     return seller
+
+def serialize_product(p, include_seller=False):
+    data = {
+        "id": p.id,
+        "name": p.name,
+        "description": p.description,
+        "price": p.price,
+        "stock": p.stock,
+        "image_url": p.image_url,
+        "is_active": p.is_active,
+        "seller_id": p.seller_id,
+        "category_id": p.category_id,
+        "category": p.category.name if p.category else None,
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+    }
+    if include_seller and p.seller:
+        data["seller"] = {
+            "id": p.seller.id,
+            "shop_name": p.seller.shop_name,
+            "shop_description": p.seller.shop_description,
+        }
+    return data
