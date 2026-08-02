@@ -15,7 +15,7 @@ from app.Helper.helper_func import (
 )
 from app.models import User
 from app.seller.seller_repo import SellerRepository
-
+from app.orders.order_service import OrderService
 
 class SuspendRequest(BaseModel):
     reason: Optional[str] = None
@@ -28,6 +28,7 @@ class AdminService:
         self.admin_repo = AdminRepo(session)
         self.seller_repo = SellerRepository(session)
         self.uow = UnitOfWork(session)
+        self.order_service = OrderService(session)
 
     # ----------------------------------------------------
     # Dashboard
@@ -58,6 +59,11 @@ class AdminService:
         sellers = await self.admin_repo.get_all_sellers(current_user)
         return [_seller_dict(seller) for seller in sellers]
 
+    async def get_all_orders(self, current_user: User):
+        require_admin(current_user)
+        orders = await self.admin_repo.get_all_orders(current_user.id)
+        return [self.order_service._order_dict(order) for order in orders]
+    
     async def get_seller_by_id(
         self,
         seller_id: UUID,

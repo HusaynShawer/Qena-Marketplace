@@ -4,7 +4,7 @@ from app.admin.admin_service import AdminService, SuspendRequest
 from app.dependencies.auth import get_current_user, get_db
 from app.models import User
 from uuid import UUID
-
+from app.dependencies.auth import require_role
 admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
@@ -16,6 +16,17 @@ async def admin_stats(
     service = AdminService(db)
     return await service.get_stats(current_user)
 
+@admin_router.get("/orders", summary="List all orders (admin)")
+async def get_all_orders(
+    current_user: User = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return every order in the system with buyer & seller info.
+    Admin only.
+    """
+    service = AdminService(db)
+    return await service.get_all_orders(current_user)
 
 @admin_router.get("/sellers/pending")
 async def get_pending_sellers(

@@ -16,7 +16,7 @@ order_router = APIRouter(prefix="/orders", tags=["Orders"])
 # Buyer endpoints
 # ------------------------------------------------------------------
 
-@order_router.post("/checkout", summary="Create orders from cart")
+@order_router.post("/", summary="Create orders from cart")
 async def create_order(
     checkout: CheckoutRequest,
     current_user: User = Depends(get_current_user),
@@ -31,7 +31,7 @@ async def create_order(
     return await service.create_order(checkout, current_user)
 
 
-@order_router.get("", summary="List buyer orders")
+@order_router.get("/", summary="List buyer orders")
 async def get_orders(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
@@ -59,10 +59,10 @@ async def get_order_detail(
 # Seller endpoints
 # ------------------------------------------------------------------
 
-seller_router = APIRouter(prefix="/seller/orders", tags=["Seller Orders"])
+orders_seller_router = APIRouter(prefix="/orders/seller", tags=["Seller Orders"])
 
 
-@seller_router.get("", summary="List seller orders")
+@orders_seller_router.get("/all", summary="List seller orders")
 async def get_seller_orders(
     current_user: User = Depends(require_role("seller")),
     session: AsyncSession = Depends(get_db),
@@ -72,7 +72,7 @@ async def get_seller_orders(
     return await service.get_seller_orders(current_user)
 
 
-@seller_router.get("/{order_id}/buyer-info", summary="Get buyer contact info")
+@orders_seller_router.get("/{order_id}/buyer-info", summary="Get buyer contact info")
 async def get_buyer_info(
     order_id: UUID,
     current_user: User = Depends(require_role("seller")),
@@ -86,7 +86,7 @@ async def get_buyer_info(
     return await service.get_buyer_info(order_id, current_user)
 
 
-@seller_router.patch("/{order_id}/status", summary="Update order status")
+@orders_seller_router.patch("/{order_id}/status", summary="Update order status")
 async def update_order_status(
     order_id: UUID,
     body: OrderStatusUpdate,

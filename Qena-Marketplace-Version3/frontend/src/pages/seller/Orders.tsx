@@ -8,7 +8,7 @@ type OrderItem = {
 };
 
 type Order = {
-  id: number;
+  id: string;
   total_amount: number;
   status: string;
   created_at: string;
@@ -107,8 +107,7 @@ export default function SellerOrdersPage() {
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     setUpdating(orderId);
     try {
-      await api.put(`/orders/${orderId}/status`, { status: newStatus });
-      setOrders((prev) =>
+        await api.patch(`/orders/seller/${orderId}/status`, { status: newStatus });      setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
       setStatusMsg((prev) => ({ ...prev, [orderId]: "Updated!" }));

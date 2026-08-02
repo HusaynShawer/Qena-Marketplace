@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import User, Wallet, Order, Seller
-from sqlalchemy import select, func
+from sqlalchemy import UUID, select, func
 from sqlalchemy.orm import selectinload
+
+from app.models.order import OrderItem
 
 
 class AdminRepo:
@@ -88,7 +90,12 @@ class AdminRepo:
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def get_seller_by_id_with_user(self, seller_id):
+    async def get_all_orders(self, admin_id:UUID)->list[Order]:
+        stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product))
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_seller_by_id_with_user(self, seller_id: UUID):
         stmt = (
             select(Seller)
             .where(Seller.id == seller_id)
@@ -97,7 +104,7 @@ class AdminRepo:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def unsuspend_seller(self, admin: User, seller_id: int):
+    async def unsuspend_seller(self, admin: User, seller_id: UUID):
         stmt = select(Seller).where(Seller.id == seller_id)
         result = await self.session.execute(stmt)
         seller = result.scalar_one_or_none()
