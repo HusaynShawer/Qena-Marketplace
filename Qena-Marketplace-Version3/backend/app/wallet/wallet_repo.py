@@ -149,3 +149,10 @@ class WalletRepository:
         await self.session.refresh(request)
 
         return request
+
+    #admin require 
+    async def get_all_wallets(self) -> list[Wallet]:
+        result = await self.session.execute(
+            select(Wallet).order_by(Wallet.created_at.desc())
+        )
+        return result.scalars().all()
