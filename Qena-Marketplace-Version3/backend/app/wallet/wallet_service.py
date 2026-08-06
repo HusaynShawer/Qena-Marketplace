@@ -231,3 +231,6 @@ class WalletService:
         if not seller:
             raise HTTPException(status_code=404, detail="Seller not found")
         return await self.wallet_repo.get_withdrawals_by_seller_id(seller.id)
+
+    async def admin_get_wallets(self) -> list[Wallet]:
+        return await self.wallet_repo.get_all_wallets()

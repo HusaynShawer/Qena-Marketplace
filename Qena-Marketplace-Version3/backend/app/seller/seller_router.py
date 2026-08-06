@@ -1,3 +1,5 @@
+from itertools import product
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,9 @@ from app.models.user import User
 from app.seller.seller_service import SellerService, SellerApply, SellerUpdate
 from app.dependencies.auth import get_current_user, require_role
 from uuid import UUID
+
+from app.schemas.product import ProductUpdate
+from app.Helper.helper_func import raise_not_found,raise_forbidden
 
 seller_router = APIRouter(prefix="/sellers", tags=["Sellers"])
 
@@ -108,3 +113,19 @@ async def delete_seller(
     """
     service = SellerService(session)
     await service.delete(seller_id)
+
+@seller_router.patch("/me/products/{product_id}", summary="Update my product")
+async def update_my_product(
+    product_id: UUID,
+    body: ProductUpdate,
+    current_user: User = Depends(require_role("seller")),
+    session: AsyncSession = Depends(get_db),
+):
+    service = SellerService(session)
+
+    updated = await service.update_product(
+        current_user=current_user,
+        product_id=product_id,
+        **body.dict(exclude_unset=True)
+    )
+    return updated

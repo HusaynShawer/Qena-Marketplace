@@ -5,6 +5,7 @@ from app.models.order import Order
 from app.models.order import OrderItem
 from app.Enums.order_enums import OrderStatusEnum
 from uuid import UUID
+from sqlalchemy.orm import selectinload
 
 
 class OrderRepository:
@@ -22,22 +23,22 @@ class OrderRepository:
     # ---------- Read ----------
 
     async def get_by_id(self, order_id: UUID) -> Order | None:
-        stmt = select(Order).where(Order.id == order_id)
+        stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.id == order_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_by_user(self, user_id: UUID) -> list[Order]:
-        stmt = select(Order).where(Order.buyer_id == user_id)
+        stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.buyer_id == user_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def get_by_seller(self, seller_id: UUID) -> list[Order]:
-        stmt = select(Order).where(Order.seller_id == seller_id)
+        stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.seller_id == seller_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def get_by_status(self, status: OrderStatusEnum) -> list[Order]:
-        stmt = select(Order).where(Order.status == status)
+        stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.status == status)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -60,5 +61,4 @@ class OrderRepository:
     async def create_order_item(self, order_item: OrderItem) -> OrderItem:
         self.session.add(order_item)
         await self.session.flush()
-        await self.session.refresh(order_item)
         return order_item

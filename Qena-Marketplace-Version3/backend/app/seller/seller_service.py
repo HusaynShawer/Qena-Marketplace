@@ -1,6 +1,8 @@
+from itertools import product
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.seller import Seller
-from app.Helper.helper_func import raise_not_found, raise_bad_request
+from app.Helper.helper_func import raise_forbidden, raise_not_found, raise_bad_request
 from app.seller.seller_repo import SellerRepository
 from app.models.user import User, UserRole
 from app.models import Product
@@ -82,6 +84,29 @@ class SellerService:
             raise_not_found("Seller not exists")
 
         return seller
+
+    async def update_product(self,current_user:User, product_id: UUID, **kwargs) -> Product:
+        product = await self.seller_repo.get_product_by_id(product_id)
+        
+        if not product:
+            raise_not_found("Product not found")
+
+        seller = await self.seller_repo.get_by_user_id(current_user.id)
+        if not seller:
+            raise_not_found("Seller not found")
+
+        if product.seller_id != seller.id:
+            raise_forbidden("You do not own this product")
+
+        updated_product = await self.seller_repo.update_product(product, **kwargs)
+
+        try:
+            await self.uow.commit()
+            return updated_product
+        except Exception:
+            await self.uow.rollback()
+            raise
+
 
     async def get_all_seller(self) -> list[Seller]:
         return await self.seller_repo.get_all()
