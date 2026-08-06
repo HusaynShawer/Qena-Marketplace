@@ -10,7 +10,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // طلب الإحصائيات بشكل مستقل
       try {
         const statsRes = await api.get('/admin/stats')
         setStats(statsRes.data)
@@ -19,7 +18,6 @@ export default function AdminDashboard() {
         console.error('❌ Stats error:', err.response?.status, err.response?.data)
       }
 
-      // طلب البيانات المالية بشكل مستقل
       try {
         const finRes = await api.get('/admin/sellers/financials')
         setSellers(finRes.data)
@@ -28,7 +26,7 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error('❌ Financials error:', err.response?.status, err.response?.data)
         setFinancialsError(true)
-        setSellers([]) // نتأكد إن sellers فاضية
+        setSellers([])
       }
     }
 
