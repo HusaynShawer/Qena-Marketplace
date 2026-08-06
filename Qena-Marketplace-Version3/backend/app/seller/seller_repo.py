@@ -19,6 +19,11 @@ class SellerRepository:
         stmt = select(Product).where(Product.seller_id == seller_id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def get_product_by_id(self, product_id: UUID) -> Product | None:
+        stmt = select(Product).where(Product.id == product_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
     
     async def get_by_seller_id(self,seller_id:UUID)->Seller|None:
         stmt = select(Seller).where(Seller.id == seller_id)
@@ -34,6 +39,13 @@ class SellerRepository:
         stmt = select(Seller)
         resluts = await self.session.execute(stmt)
         return resluts.scalars().all()
+
+    async def update_product(self, product: Product, **kwargs) -> Product:
+        for key, value in kwargs.items():
+            setattr(product, key, value)
+        await self.session.flush()
+        await self.session.refresh(product)
+        return product
     
     async def save(self,seller:Seller)->Seller:
         await self.session.flush()
