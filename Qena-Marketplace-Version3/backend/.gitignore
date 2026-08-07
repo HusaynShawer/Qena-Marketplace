@@ -6,3 +6,5 @@ venv/
 .DS_Store
 postgres_data/
 /logs
+logs/
+*.log

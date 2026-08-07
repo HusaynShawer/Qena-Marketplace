@@ -11,3 +11,5 @@ qmpenv/
 qmpenv
 .qmpenv
 /logs
+logs/
+*.log
