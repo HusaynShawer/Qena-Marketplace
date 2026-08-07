@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models import Product, Order, OrderItem
-from app.utils.logging import logger
+from backend.app.utils.logging_config import logger
 
 def process_incoming_sync(payload: dict, db: Session):
     action = payload.get("action")

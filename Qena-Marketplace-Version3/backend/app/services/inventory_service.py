@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.product import Product
-from app.utils.logging import logger
+from backend.app.utils.logging_config import logger
 from uuid import UUID
 
 

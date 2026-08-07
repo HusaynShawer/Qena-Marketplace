@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -16,6 +17,9 @@ from app.Helper.helper_func import (
 from app.models import User
 from app.seller.seller_repo import SellerRepository
 from app.orders.order_service import OrderService
+
+logger = logging.getLogger(__name__)
+
 
 class SuspendRequest(BaseModel):
     reason: Optional[str] = None
@@ -36,47 +40,55 @@ class AdminService:
 
     async def get_stats(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested dashboard stats", current_user.id)
         return await self.admin_repo.get_stats(current_user)
-
 
     async def get_pending_sellers(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested pending sellers", current_user.id)
         sellers = await self.admin_repo.get_pending_sellers(current_user)
         return [_seller_dict(seller) for seller in sellers]
 
     async def get_suspended_sellers(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested suspended sellers", current_user.id)
         sellers = await self.admin_repo.get_suspended_sellers(current_user)
         return [_seller_dict(seller) for seller in sellers]
 
     async def get_approved_sellers(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested approved sellers", current_user.id)
         sellers = await self.admin_repo.get_approved_sellers(current_user)
         return [_seller_dict(seller) for seller in sellers]
 
     async def get_all_sellers(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested all sellers", current_user.id)
         sellers = await self.admin_repo.get_all_sellers(current_user)
         return [_seller_dict(seller) for seller in sellers]
 
     async def get_all_orders(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested all orders", current_user.id)
         orders = await self.admin_repo.get_all_orders(current_user.id)
         return [self.order_service._order_dict(order) for order in orders]
-    
+
     async def get_seller_by_id(
         self,
         seller_id: UUID,
         current_user: User,
     ):
         require_admin(current_user)
+        logger.info("Admin %s requested seller %s", current_user.id, str(seller_id))
         seller = await self.admin_repo.get_seller_by_id_with_user(seller_id)
         if not seller:
+            logger.warning("Seller %s not found", str(seller_id))
             raise_not_found("Seller not found")
         return _seller_dict(seller)
 
     async def get_sellers_financials(self, current_user: User):
         require_admin(current_user)
+        logger.info("Admin %s requested sellers financials", current_user.id)
         return await self.admin_repo.get_sellers_financials(current_user)
 
     # ----------------------------------------------------
@@ -91,8 +103,10 @@ class AdminService:
         require_admin(current_user)
         seller = await self.seller_repo.get_by_seller_id(seller_id)
         if not seller:
+            logger.warning("Approve failed: seller %s not found", str(seller_id))
             raise_not_found("Seller not found")
         if seller.is_suspended:
+            logger.warning("Approve failed: seller %s is suspended", str(seller_id))
             raise_bad_request("Cannot approve a suspended seller.")
 
         seller.approved = True
@@ -101,8 +115,10 @@ class AdminService:
         try:
             await self.seller_repo.save(seller)
             await self.uow.commit()
+            logger.info("Admin %s approved seller %s", current_user.id, str(seller_id))
             return {"message": "Seller approved successfully"}
         except Exception:
+            logger.exception("Approval of seller %s failed", str(seller_id))
             await self.uow.rollback()
             raise
 
@@ -119,8 +135,10 @@ class AdminService:
         require_admin(current_user)
         seller = await self.seller_repo.get_by_seller_id(seller_id)
         if not seller:
+            logger.warning("Suspend failed: seller %s not found", str(seller_id))
             raise_not_found("Seller not found")
         if seller.is_suspended:
+            logger.warning("Suspend failed: seller %s already suspended", str(seller_id))
             raise_bad_request("Seller is already suspended.")
 
         seller.is_suspended = True
@@ -130,8 +148,11 @@ class AdminService:
         try:
             await self.seller_repo.save(seller)
             await self.uow.commit()
+            logger.info("Admin %s suspended seller %s (reason: %s)",
+                        current_user.id, str(seller_id), body.reason)
             return {"message": "Seller suspended successfully"}
         except Exception:
+            logger.exception("Suspension of seller %s failed", str(seller_id))
             await self.uow.rollback()
             raise
 
@@ -147,8 +168,10 @@ class AdminService:
         require_admin(current_user)
         seller = await self.seller_repo.get_by_seller_id(seller_id)
         if not seller:
+            logger.warning("Unsuspend failed: seller %s not found", str(seller_id))
             raise_not_found("Seller not found")
         if not seller.is_suspended:
+            logger.warning("Unsuspend failed: seller %s is not suspended", str(seller_id))
             raise_bad_request("Seller is not suspended.")
 
         seller.is_suspended = False
@@ -158,7 +181,9 @@ class AdminService:
         try:
             await self.seller_repo.save(seller)
             await self.uow.commit()
+            logger.info("Admin %s unsuspended seller %s", current_user.id, str(seller_id))
             return {"message": "Seller unsuspended successfully"}
         except Exception:
+            logger.exception("Unsuspension of seller %s failed", str(seller_id))
             await self.uow.rollback()
             raise
