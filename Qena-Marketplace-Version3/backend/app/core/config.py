@@ -31,5 +31,6 @@ class Settings(BaseSettings):
     # Sync
     SYNC_ENABLED: bool = False
     SYNC_WEBHOOK_SECRET: str = ""
+    LOG_LEVEL:str = "INFO"
 
 settings = Settings()

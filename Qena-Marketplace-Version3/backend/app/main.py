@@ -7,7 +7,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.database import engine
-from app.utils.logging import setup_logging
+from app.utils.logging_config import setup_logging
 from app.routers.api import api_router
 import os 
 
