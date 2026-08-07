@@ -10,3 +10,4 @@ venv/
 qmpenv/
 qmpenv
 .qmpenv
+/logs
