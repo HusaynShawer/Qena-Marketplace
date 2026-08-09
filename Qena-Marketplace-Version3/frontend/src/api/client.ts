@@ -15,16 +15,20 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
+    const status = error.response?.status
     const message = error.response?.data?.detail || 'Something went wrong'
-    toast.error(message)
-    if (error.response?.status === 401) {
+
+    // Don't toast 403 here — LoginPage handles "email not verified"
+    if (status !== 403) {
+      toast.error(message)
+    }
+
+    if (status === 401) {
       localStorage.removeItem('access_token')
       window.location.href = '/login'
     }
     return Promise.reject(error)
   }
 )
-
-
 
 export default api

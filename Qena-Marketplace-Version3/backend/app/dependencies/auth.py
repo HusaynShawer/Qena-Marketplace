@@ -1,48 +1,44 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.core.config import settings
 from app.core.database import get_db
-from app.models.user import User, UserRole
 from app.user.user_service import UserService
-from app.utils.jwt import decode_token
+from app.models.user import User
 from uuid import UUID
-
+from app.models.user import UserRole
 security = HTTPBearer()
-
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db)
 ) -> User:
-
-    payload = decode_token(credentials.credentials)
-
-    if payload is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token",
-        )
-
-    user_id = payload.get("sub")
-
-    if user_id is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token",
-        )
-    # JWT `sub` is stored as a string; convert to UUID for DB lookup
+    token = credentials.credentials
     try:
-        user_uuid = UUID(user_id)
-    except Exception:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token payload",
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_service = UserService(db)
+    user = await user_service.get_by_id(UUID(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="Email not verified")
+    
+    return user
 
-    user_service = UserService(session)
-
-    return await user_service.get_user(user_uuid)
+def require_role(role: str):
+    async def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role.value != role:
+            raise HTTPException(status_code=403, detail=f"Requires {role} role")
+        return current_user
+    return role_checker
 
 def require_role(role: UserRole):
     async def role_checker(

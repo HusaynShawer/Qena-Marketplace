@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
     setError(""); setSuccess("");
     setLoading(true);
     try {
-      await api.post("/auth/verify-otp", { email, otp });
+      await api.post("/auth/verify-reset-otp", { email, otp });   // CHANGED from /auth/verify-otp
       setSuccess("Code verified! Set your new password.");
       setStep("password");
     } catch (err: any) {

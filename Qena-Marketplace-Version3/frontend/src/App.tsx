@@ -6,6 +6,7 @@ import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/"                    element={<HomePage />} />
           <Route path="/login"               element={<LoginPage />} />
           <Route path="/register"            element={<RegisterPage />} />
+          <Route path="/verify-email"        element={<VerifyEmailPage />} />
           <Route path="/forgot-password"     element={<ForgotPasswordPage />} />
           <Route path="/products"            element={<ProductsPage />} />
           <Route path="/products/:id"        element={<ProductDetailPage />} />
@@ -70,7 +72,6 @@ export default function App() {
             <Route path="/checkout"   element={<CheckoutPage />} />
             <Route path="/orders"     element={<OrdersPage />} />
             <Route path="/profile"    element={<ProfilePage />} />
-            {/* Seller setup — any logged-in user can apply */}
             <Route path="/seller/setup" element={<SellerSetup />} />
           </Route>
 

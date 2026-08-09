@@ -1,13 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 from uuid import UUID
+from app.models.user import UserRole
+
 class UserCreate(BaseModel):
-    name: str
-    email: str
-    password: str
-    role: str = "buyer"
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    role: UserRole = UserRole.BUYER
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 class TokenResponse(BaseModel):
@@ -17,19 +20,24 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: UUID
     name: str
-    email: str
-    role: str
+    email: EmailStr
+    role: UserRole
+    is_verified: bool
+
     class Config:
         from_attributes = True
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 class VerifyOTPRequest(BaseModel):
-    email: str
-    otp: str
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
 
 class ResetPasswordRequest(BaseModel):
-    email: str
-    otp: str
-    new_password: str
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)
+
+class ResendOTPRequest(BaseModel):
+    email: EmailStr

@@ -20,7 +20,15 @@ export default function LoginPage() {
       await login(email, password)
       navigate('/')
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password')
+      const status = err.response?.status
+      const detail = err.response?.data?.detail || ''
+
+      if (status === 403 && detail.toLowerCase().includes('not verified')) {
+        // Email not verified — send to OTP page
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`)
+      } else {
+        setError(detail || 'Invalid email or password')
+      }
     } finally {
       setLoading(false)
     }
@@ -114,7 +122,7 @@ export default function LoginPage() {
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="text-sm font-medium text-slate-700">Password</label>
-                  <a href="#" className="text-xs text-orange-500 hover:underline">Forgot password?</a>
+                  <Link to="/forgot-password" className="text-xs text-orange-500 hover:underline">Forgot password?</Link>
                 </div>
                 <div className="relative">
                   <LockClosedIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
