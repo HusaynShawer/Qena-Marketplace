@@ -15,7 +15,6 @@ class UserRepository:
         return user
     
     async def get_by_id(self,user_id:UUID)->User|None:
-        # user_id is a UUID object; the users.id column is UUID(as_uuid=True)
         stmt = select(User).where(User.id == user_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -37,6 +36,11 @@ class UserRepository:
         return resluts.scalars().all()
     
     async def save(self,user:User)->User:
+        await self.session.flush()
+        await self.session.refresh(user)
+        return user
+
+    async def update(self,user:User):
         await self.session.flush()
         await self.session.refresh(user)
         return user

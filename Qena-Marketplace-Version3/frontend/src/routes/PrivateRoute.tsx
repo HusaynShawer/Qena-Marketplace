@@ -9,7 +9,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
-
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         {/* Protected seller routes */}
         <Route element={<PrivateRoute allowedRoles={['seller']} />}>
           <Route path="/seller/products" element={<SellerProducts />} />

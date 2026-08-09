@@ -17,14 +17,18 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (password.length < 6) { 
+      setError('Password must be at least 6 characters'); 
+      return 
+    }
     setError('')
     setLoading(true)
     try {
       await register(name, email, password, role)
-      navigate('/')
+      // Redirect to OTP verification instead of home
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
-      setError(err.message || 'Registration failed')
+      setError(err.response?.data?.detail || err.message || 'Registration failed')
     } finally {
       setLoading(false)
     }

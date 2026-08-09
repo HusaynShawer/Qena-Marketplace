@@ -1,3 +1,4 @@
+from pydantic import EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 from typing import List
@@ -32,5 +33,14 @@ class Settings(BaseSettings):
     SYNC_ENABLED: bool = False
     SYNC_WEBHOOK_SECRET: str = ""
     LOG_LEVEL:str = "INFO"
+
+    # Email
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    SMTP_FROM: EmailStr
+    SMTP_TLS: bool = True
+
 
 settings = Settings()

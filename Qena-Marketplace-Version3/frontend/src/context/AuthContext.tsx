@@ -7,6 +7,7 @@ interface User {
   name: string
   email: string
   role: string
+  is_verified: boolean
 }
 
 interface AuthContextType {
@@ -14,6 +15,8 @@ interface AuthContextType {
   token: string | null
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string, role: string) => Promise<void>
+  verifyEmail: (email: string, otp: string) => Promise<void>
+  resendOTP: (email: string) => Promise<void>
   logout: () => void
   loading: boolean
 }
@@ -51,8 +54,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (name: string, email: string, password: string, role: string) => {
     await api.post('/auth/register', { name, email, password, role })
-    toast.success('Registration successful! Please login.')
-    await login(email, password)
+    toast.success('OTP sent! Check your email to verify.')
+    // DON'T login here anymore
+  }
+
+  const verifyEmail = async (email: string, otp: string) => {
+    const res = await api.post('/auth/verify-email', { email, otp })
+    const { access_token } = res.data
+    localStorage.setItem('access_token', access_token)
+    setToken(access_token)
+    const userRes = await api.get('/users/me')
+    setUser(userRes.data)
+    toast.success('Email verified! Welcome.')
+  }
+
+  const resendOTP = async (email: string) => {
+    await api.post('/auth/resend-otp', { email })
+    toast.success('New OTP sent!')
   }
 
   const logout = () => {
@@ -63,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, verifyEmail, resendOTP, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )
