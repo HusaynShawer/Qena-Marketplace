@@ -42,5 +42,13 @@ class Settings(BaseSettings):
     SMTP_FROM: EmailStr
     SMTP_TLS: bool = True
 
+    #Openrouter 
+    #OPENROUTER_API_KEY: str
+    #OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
+    #Embeddings
+    EMBEDDING_API_KEY: str
+    #COHERE_API_KEY:str
+    EMBEDDING_MODEL: str = "embed-v4.0"
+    VECTOR_DIMENSIONS: int = 1536
 settings = Settings()

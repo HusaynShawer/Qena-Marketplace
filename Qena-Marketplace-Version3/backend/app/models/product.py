@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
 from app.core.database import Base
 from uuid import uuid4
@@ -21,6 +22,9 @@ class Product(Base):
     image_url = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    #vectorDB
+    embeddings = Column(Vector(1536), nullable=True)
     
     seller = relationship("Seller", back_populates="products")
     category = relationship("Category")
