@@ -1,3 +1,4 @@
+from pgvector.sqlalchemy import Vector
 """add embeddings
 
 Revision ID: 9d86f5e6e857
@@ -5,7 +6,6 @@ Revises: 599dd3870f13
 Create Date: 2026-08-12 14:09:11.490440
 
 """
-from pgvector.sqlalchemy import Vector
 from typing import Sequence, Union
 
 from alembic import op

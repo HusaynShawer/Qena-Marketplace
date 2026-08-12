@@ -1,7 +1,7 @@
-from embeddings import generate_embeddings
-from embeddings_repo import EmbeddingsRepo
+from app.semantic_search.embeddings import generate_embeddings
+from app.semantic_search.embeddings_repo import EmbeddingsRepo
 
-async def retrieve_similar_documents(session, query: str, top_k: int = 5):
+async def retrieve_similar_products(session, query: str, top_k: int = 5):
     query_embedding = (await generate_embeddings([query]))[0]
     
     embeddings_repo = EmbeddingsRepo(session)
