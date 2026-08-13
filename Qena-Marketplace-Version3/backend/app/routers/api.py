@@ -10,6 +10,7 @@ from app.auth.auth_router import auth_router
 from app.admin.admin_router import admin_router
 from app.categories.category_router import category_router
 from app.reviews.reviews_router import review_router
+from backend.app.ml_features.semantic_search.semantic_search_router import SM_router
 
 api_router = APIRouter()
 
@@ -25,3 +26,4 @@ api_router.include_router(admin_router)
 api_router.include_router(category_router)
 api_router.include_router(review_router)
 api_router.include_router(admin_wallet_router)
+api_router.include_router(SM_router)

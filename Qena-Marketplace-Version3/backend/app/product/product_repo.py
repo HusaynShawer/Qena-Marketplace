@@ -27,6 +27,23 @@ class ProductRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_ids(self, product_ids: list[UUID]) -> list[Product]:
+        if not product_ids:
+            return []
+
+        stmt = (
+            select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.seller),
+            )
+            .where(Product.id.in_(product_ids), Product.is_active == True)
+        )
+        result = await self.session.execute(stmt)
+        order_map = {product_id: index for index, product_id in enumerate(product_ids)}
+        products = list(result.scalars().all())
+        return sorted(products, key=lambda p: order_map.get(p.id, len(product_ids)))        
+
     async def get_by_seller(self, seller_id: UUID) -> list[Product]:
         stmt = (
             select(Product)
@@ -94,6 +111,53 @@ class ProductRepository:
         )
         products = await self.session.execute(stmt)
         return products.scalars().all()
+
+    async def get_by_ids_with_embeddings(
+        self,
+        product_ids: list[UUID],
+    ) -> list[Product]:
+        if not product_ids:
+            return []
+
+        stmt = (
+            select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.seller),
+            )
+            .where(
+                Product.id.in_(product_ids),
+                Product.is_active == True,
+                Product.embeddings.isnot(None),
+            )
+        )
+        result = await self.session.execute(stmt)
+        order_map = {pid: idx for idx, pid in enumerate(product_ids)}
+        products = list(result.scalars().all())
+        return sorted(products, key=lambda p: order_map.get(p.id, len(product_ids)))
+
+    async def get_similar_by_embedding(
+        self,
+        query_vector: list[float],
+        exclude_ids: list[UUID],
+        limit: int = 20,
+    ) -> list[Product]:
+        stmt = (
+            select(Product)
+            .options(
+                selectinload(Product.category),
+                selectinload(Product.seller),
+            )
+            .where(
+                Product.is_active == True,
+                Product.embeddings.isnot(None),
+                Product.id.notin_(exclude_ids) if exclude_ids else True,
+            )
+            .order_by(Product.embeddings.cosine_distance(query_vector))
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
 
     async def save(self, product: Product) -> Product:
         await self.session.flush()
