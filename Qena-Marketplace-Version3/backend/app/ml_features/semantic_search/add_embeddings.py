@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy import select
 from app.models.product import Product
-from app.semantic_search.embeddings import generate_embeddings
+from backend.app.ml_features.semantic_search.embeddings import generate_embeddings
 from app.core.database import AsyncSessionLocal
 
 

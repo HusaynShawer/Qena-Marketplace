@@ -10,7 +10,7 @@ from app.auth.auth_router import auth_router
 from app.admin.admin_router import admin_router
 from app.categories.category_router import category_router
 from app.reviews.reviews_router import review_router
-from app.semantic_search.semantic_search_router import SM_router
+from backend.app.ml_features.semantic_search.semantic_search_router import SM_router
 
 api_router = APIRouter()
 

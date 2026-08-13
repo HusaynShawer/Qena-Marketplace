@@ -31,3 +31,5 @@ class Product(Base):
     cart_items = relationship("Cart", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
     reviews = relationship("Review", back_populates="product")
+
+    product_interactions = relationship("ProductInteraction",back_populates="product")
