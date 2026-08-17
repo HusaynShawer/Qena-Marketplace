@@ -8,6 +8,8 @@ from app.schemas.items import CartItemCreate, CartItemUpdate
 from app.product.product_repo import ProductRepository
 from uuid import UUID
 from app.core.unitofwork import UnitOfWork
+from app.interactions.interaction_service import InteractionService
+from app.models.interaction import InteractionType
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ class CartService:
         self.cart_repo = CartRepository(session=session)
         self.product_repo = ProductRepository(session=session)
         self.uow = UnitOfWork(session)
+        self.interaction_service = InteractionService(session=session)
 
     async def get_cart(self, current_user: User) -> dict:
         logger.info("Fetching cart for user %s", current_user.id)
@@ -51,8 +54,10 @@ class CartService:
             raise HTTPException(status_code=404, detail="Product not found")
 
         if product.stock < item.quantity:
-            logger.warning("Add to cart failed: insufficient stock for product %s (stock: %d, requested: %d)",
-                           item.product_id, product.stock, item.quantity)
+            logger.warning(
+                "Add to cart failed: insufficient stock for product %s (stock: %d, requested: %d)",
+                item.product_id, product.stock, item.quantity,
+            )
             raise HTTPException(status_code=400, detail="Insufficient stock")
 
         cart_item = await self.cart_repo.get_cart_item(current_user.id, item.product_id)
@@ -65,7 +70,7 @@ class CartService:
             cart_item = Cart(
                 user_id=current_user.id,
                 product_id=item.product_id,
-                quantity=item.quantity
+                quantity=item.quantity,
             )
             await self.cart_repo.create(cart_item)
             logger.debug("Created new cart item %s", cart_item.id)
@@ -79,6 +84,20 @@ class CartService:
             logger.exception("Commit failed while adding to cart for user %s", current_user.id)
             await self.uow.rollback()
             raise HTTPException(status_code=500, detail="Failed to add to cart")
+
+        # ── Log CART interaction ──────────────────────────────────────
+        try:
+            await self.interaction_service.log(
+                user_id=current_user.id,
+                product_id=item.product_id,
+                interaction_type=InteractionType.CART,
+            )
+        except Exception:
+            logger.warning(
+                "Failed to log CART interaction for user %s product %s",
+                current_user.id, item.product_id,
+            )
+        # ─────────────────────────────────────────────────────────────
 
         return {"message": "Added to cart"}
 
@@ -123,8 +142,10 @@ class CartService:
             raise HTTPException(status_code=404, detail="Product Not Found")
 
         if product.stock < quantity:
-            logger.warning("Update quantity failed: insufficient stock for product %s (stock: %d, requested: %d)",
-                           cart.product_id, product.stock, quantity)
+            logger.warning(
+                "Update quantity failed: insufficient stock for product %s (stock: %d, requested: %d)",
+                cart.product_id, product.stock, quantity,
+            )
             raise HTTPException(status_code=400, detail="Quantity Not enough")
 
         cart.quantity = quantity

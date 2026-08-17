@@ -18,6 +18,8 @@ from app.models import Product, User
 from app.product.product_repo import ProductRepository
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.seller.seller_repo import SellerRepository
+from app.interactions.interaction_service import InteractionService
+from app.models.interaction import InteractionType
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ class ProductService:
         self.session = session
         self.product_repo = ProductRepository(session=session)
         self.seller_repo = SellerRepository(session=session)
+        self.interaction_service = InteractionService(session=session)
         self.upload_dir = os.getenv("UPLOAD_DIR", "/app/static/uploads")
 
     async def create(
@@ -80,12 +83,18 @@ class ProductService:
         logger.info("Product created: %s (id: %s) by seller %s", name, created.id, seller.id)
         return created
 
-    async def get_product(self, product_id: UUID) -> Product:
+    async def get_product(
+        self,
+        product_id: UUID,
+    ) -> Product:
         logger.debug("Fetching product %s", product_id)
+
         product = await self.product_repo.get_by_id(product_id=product_id)
+
         if not product:
             logger.warning("Product %s not found", product_id)
             raise_not_found("Product not found")
+
         return product
 
     async def get_products(

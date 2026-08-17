@@ -1,8 +1,11 @@
+import logging
 from uuid import UUID
 from app.models.product import Product
-from app.services.interaction_service import InteractionService
-from app.repositories.product_repository import ProductRepository
+from app.interactions.interaction_service import InteractionService
+from app.product.product_repo import ProductRepository
 from .base import BaseRecommendationStrategy
+
+logger = logging.getLogger(__name__)
 
 
 class TrendingStrategy(BaseRecommendationStrategy):
@@ -21,12 +24,35 @@ class TrendingStrategy(BaseRecommendationStrategy):
         user_id: UUID,
         limit: int = 20,
     ) -> list[Product]:
-        product_ids = await self.interaction_service.get_trending_product_ids(
-            days=self.days,
-            limit=limit,
-        )
-
-        if not product_ids:
+        try:
+            product_ids = await self.interaction_service.get_trending_products_ids(
+                days=self.days,
+                limit=limit * 3,
+            )
+        except Exception as exc:
+            logger.error(f"get_trending_products_ids failed: {exc}")
             return []
 
-        return await self.product_repository.get_by_ids(product_ids)
+        if not product_ids:
+            logger.info("No trending products")
+            return []
+
+        try:
+            purchased = await self.interaction_service.get_user_purchased_product_ids(
+                user_id
+            )
+            exclude = set(purchased)
+            filtered = [pid for pid in product_ids if pid not in exclude]
+        except Exception:
+            filtered = product_ids
+
+        if not filtered:
+            return []
+
+        try:
+            products = await self.product_repository.get_by_ids(filtered[:limit * 3])
+            logger.info(f"Trending returned {len(products)}")
+            return products
+        except Exception as exc:
+            logger.error(f"get_by_ids failed for trending: {exc}")
+            return []

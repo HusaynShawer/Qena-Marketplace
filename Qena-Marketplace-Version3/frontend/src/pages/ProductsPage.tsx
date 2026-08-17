@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 const CATEGORIES = [
   { name: 'All', q: '' },
@@ -20,15 +21,14 @@ const ProductsPage: React.FC = () => {
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
 
-  // Read all filters from URL
   const activeCategory = searchParams.get('category') || ''
   const search = searchParams.get('search') || ''
   const minPrice = searchParams.get('minPrice') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
   const sortBy = searchParams.get('sort') || 'newest'
 
-  // Local state for inputs (so typing doesn't lag)
   const [searchInput, setSearchInput] = useState(search)
   const [minInput, setMinInput] = useState(minPrice)
   const [maxInput, setMaxInput] = useState(maxPrice)
@@ -40,42 +40,77 @@ const ProductsPage: React.FC = () => {
       if (searchInput.trim()) newParams.set('search', searchInput.trim())
       else newParams.delete('search')
       setSearchParams(newParams)
-    }, 400) // 400ms debounce
-
+    }, 400)
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  // Fetch from API whenever category or search changes
+  // Fetch products based on filters and sorting
   useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams()
-    params.append('limit', '200')
-    if (activeCategory) params.append('category', activeCategory)
-    if (search) params.append('search', search)
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        if (sortBy === 'recommended') {
+          // Use the recommendation endpoint for logged-in users
+          if (user) {
+            const res = await api.get(`/recommendations/?page=1&per_page=100`)
+            let recommended = Array.isArray(res.data) ? res.data : []
+            // Apply category and search filters client-side
+            if (activeCategory) {
+              recommended = recommended.filter(p => p.category === activeCategory)
+            }
+            if (search) {
+              const q = search.toLowerCase()
+              recommended = recommended.filter(p => 
+                p.name.toLowerCase().includes(q) || 
+                (p.description && p.description.toLowerCase().includes(q))
+              )
+            }
+            setAllProducts(recommended)
+          } else {
+            // If not logged in, fall back to newest products
+            setAllProducts([])
+          }
+        } else {
+          // Normal product fetch with server-side sorting for non-recommended options
+          const params = new URLSearchParams()
+          params.append('limit', '200')
+          if (activeCategory) params.append('category', activeCategory)
+          if (search) params.append('search', search)
+          if (sortBy && sortBy !== 'recommended') params.append('sort', sortBy)
+          const res = await api.get(`/products?${params.toString()}`)
+          setAllProducts(Array.isArray(res.data) ? res.data : [])
+        }
+      } catch (err) {
+        setAllProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    api.get(`/products?${params.toString()}`)
-      .then(res => setAllProducts(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setAllProducts([]))
-      .finally(() => setLoading(false))
-  }, [activeCategory, search])
+    fetchProducts()
+  }, [activeCategory, search, sortBy, user])
 
-  // Client-side: price filter + sort
+  // Client-side price filtering (applies to all cases)
   useEffect(() => {
     let filtered = [...allProducts]
 
     if (minPrice) filtered = filtered.filter(p => p.price >= parseFloat(minPrice))
     if (maxPrice) filtered = filtered.filter(p => p.price <= parseFloat(maxPrice))
 
-    if (sortBy === 'newest') {
-      filtered.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime()
-        const db = new Date(b.created_at || 0).getTime()
-        return db - da // newest first
-      })
-    } else if (sortBy === 'price_asc') {
-      filtered.sort((a, b) => a.price - b.price)
-    } else if (sortBy === 'price_desc') {
-      filtered.sort((a, b) => b.price - a.price)
+    // If sort is not 'recommended', we may need to sort again after price filter
+    // (since the server sorting was done before price filter, we re-sort to maintain order)
+    if (sortBy !== 'recommended') {
+      if (sortBy === 'newest') {
+        filtered.sort((a, b) => {
+          const da = new Date(a.created_at || 0).getTime()
+          const db = new Date(b.created_at || 0).getTime()
+          return db - da
+        })
+      } else if (sortBy === 'price_asc') {
+        filtered.sort((a, b) => a.price - b.price)
+      } else if (sortBy === 'price_desc') {
+        filtered.sort((a, b) => b.price - a.price)
+      }
     }
 
     setProducts(filtered)
@@ -152,6 +187,7 @@ const ProductsPage: React.FC = () => {
                 <option value="newest">Newest First</option>
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
+                {user && <option value="recommended">⭐ Recommended For You</option>}
               </select>
             </div>
             {(activeCategory || search || minPrice || maxPrice || sortBy !== 'newest') && (

@@ -18,7 +18,6 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
 
-  // احسب المتوسط والعدد من الـ reviews لو موجودة
   const reviews = product.reviews || []
   const reviewCount = product.review_count ?? reviews.length
   const avgRating = product.avg_rating ?? (

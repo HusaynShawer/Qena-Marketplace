@@ -35,4 +35,4 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     seller_profile = relationship("Seller", back_populates="user", uselist=False)
-    # Wallet and withdrawal models are in separate files
+    product_interactions = relationship("ProductInteraction", back_populates="user")

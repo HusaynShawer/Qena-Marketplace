@@ -15,6 +15,8 @@ from app.schemas.checkout import CheckoutRequest
 from app.seller.seller_repo import SellerRepository
 from app.Helper.helper_func import _buyer_info_dict
 from app.Helper.helper import SELLER_ALLOWED_TRANSITIONS, VALID_STATUSES
+from app.interactions.interaction_service import InteractionService
+from app.models.interaction import InteractionType
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
@@ -30,8 +32,10 @@ class OrderService:
         self.cart_repo = CartRepository(session)
         self.product_repo = ProductRepository(session)
         self.seller_repo = SellerRepository(session)
+
         # Services
         self.wallet_service = WalletService(session)
+        self.interaction_service = InteractionService(session=session)
 
     # ------------------------------------------------------------------
     # Private Helpers
@@ -55,9 +59,7 @@ class OrderService:
                 {
                     "product_id": item.product_id,
                     "product_name": (
-                        item.product.name
-                        if item.product
-                        else "Unknown"
+                        item.product.name if item.product else "Unknown"
                     ),
                     "quantity": item.quantity,
                     "price": item.price,
@@ -84,26 +86,19 @@ class OrderService:
 
             if not cart_items:
                 logger.warning("Order creation failed: cart empty for user %s", current_user.id)
-                raise HTTPException(
-                    status_code=400,
-                    detail="Cart is empty",
-                )
+                raise HTTPException(status_code=400, detail="Cart is empty")
 
             # Validate stock
             for item in cart_items:
                 product = item.product
-
                 if not product:
                     logger.warning("Order creation failed: product in cart missing for user %s", current_user.id)
-                    raise HTTPException(
-                        status_code=404,
-                        detail="Product not found",
-                    )
+                    raise HTTPException(status_code=404, detail="Product not found")
 
                 if product.stock < item.quantity:
                     logger.warning(
                         "Order creation failed: insufficient stock for product %s (need %d, have %d)",
-                        product.id, item.quantity, product.stock
+                        product.id, item.quantity, product.stock,
                     )
                     raise HTTPException(
                         status_code=400,
@@ -116,11 +111,11 @@ class OrderService:
                 items_by_seller[item.product.seller_id].append(item)
 
             created_orders = []
+            purchased_product_ids = []  # ← نجمع كل الـ products المشتراة
 
             for seller_id, items in items_by_seller.items():
                 total = sum(
-                    item.product.price * item.quantity
-                    for item in items
+                    item.product.price * item.quantity for item in items
                 )
 
                 order = Order(
@@ -154,6 +149,8 @@ class OrderService:
                     await self.product_repo.update(item.product)
                     logger.debug("Decremented stock for product %s", item.product.id)
 
+                    purchased_product_ids.append(item.product.id)
+
                 # Credit seller wallet
                 await self.wallet_service.credit_wallet(
                     seller_id=seller_id,
@@ -168,7 +165,25 @@ class OrderService:
 
             # Commit everything once
             await self.session.commit()
-            logger.info("Order(s) created successfully for user %s: %d orders", current_user.id, len(created_orders))
+            logger.info(
+                "Order(s) created successfully for user %s: %d orders",
+                current_user.id, len(created_orders),
+            )
+
+            # ── Log PURCHASE interaction for each product ─────────────
+            for product_id in purchased_product_ids:
+                try:
+                    await self.interaction_service.log(
+                        user_id=current_user.id,
+                        product_id=product_id,
+                        interaction_type=InteractionType.PURCHASE,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Failed to log PURCHASE interaction for user %s product %s",
+                        current_user.id, product_id,
+                    )
+            # ─────────────────────────────────────────────────────────
 
             return {
                 "message": "Orders created successfully",
@@ -247,7 +262,6 @@ class OrderService:
             logger.info("Admin %s accessing buyer info for order %s", current_user.id, order_id)
             return _buyer_info_dict(order)
 
-        # Seller
         seller = await self.seller_repo.get_by_user_id(current_user.id)
         if not seller or seller.id != order.seller_id:
             logger.warning("Unauthorized buyer info access: user %s, order %s", current_user.id, order_id)
@@ -267,38 +281,42 @@ class OrderService:
     ):
         logger.info("User %s attempting to update order %s to status '%s'", current_user.id, order_id, status)
 
-        # Validate status
         if status not in VALID_STATUSES:
             logger.warning("Invalid status '%s' provided for order %s", status, order_id)
-            raise HTTPException(status_code=400, detail=f"Invalid status. Valid values: {VALID_STATUSES}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Valid values: {VALID_STATUSES}",
+            )
 
-        # Get seller
         seller = await self.seller_repo.get_by_user_id(current_user.id)
         if not seller:
             logger.warning("User %s is not a seller", current_user.id)
             raise HTTPException(status_code=403, detail="Not a seller")
 
-        # Get order
         order = await self.order_repo.get_by_id(order_id)
         if not order:
             logger.warning("Order %s not found for status update", order_id)
             raise HTTPException(status_code=404, detail="Order not found")
 
-        # Check ownership
         if order.seller_id != seller.id:
-            logger.warning("User %s (seller %s) does not own order %s", current_user.id, seller.id, order_id)
+            logger.warning(
+                "User %s (seller %s) does not own order %s",
+                current_user.id, seller.id, order_id,
+            )
             raise HTTPException(status_code=403, detail="Not authorized")
 
         current_status = order.status.value
         allowed = SELLER_ALLOWED_TRANSITIONS.get(current_status, [])
         if status not in allowed:
-            logger.warning("Invalid status transition for order %s: %s -> %s", order_id, current_status, status)
+            logger.warning(
+                "Invalid status transition for order %s: %s -> %s",
+                order_id, current_status, status,
+            )
             raise HTTPException(
                 status_code=400,
                 detail=f"Cannot change status from '{current_status}' to '{status}'. Allowed: {allowed}",
             )
 
-        # Restore stock if cancelled
         if status == OrderStatus.CANCELLED.value:
             for item in order.items:
                 item.product.stock += item.quantity
@@ -308,7 +326,7 @@ class OrderService:
         order.status = OrderStatus(status)
         await self.order_repo.save(order)
         await self.session.commit()
-        logger.info("Order %s status updated to '%s' by seller %s", order_id, status, current_user.id)
+        logger.info("Order %s status updated to '%s' by seller %s", order_id, status, seller.id)
 
         return {
             "message": "Status updated successfully",
@@ -337,7 +355,12 @@ class OrderService:
     # Credit Seller Wallet
     # ------------------------------------------------------------------
 
-    async def credit_seller_wallet(self, seller_id: UUID, amount: float, order_id: UUID) -> None:
+    async def credit_seller_wallet(
+        self,
+        seller_id: UUID,
+        amount: float,
+        order_id: UUID,
+    ) -> None:
         logger.info("Crediting wallet for seller %s, amount %.2f, order %s", seller_id, amount, order_id)
         await self.wallet_service.credit_wallet(
             seller_id=seller_id,

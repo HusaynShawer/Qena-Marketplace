@@ -1,5 +1,5 @@
+from uuid import UUID
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
@@ -8,7 +8,9 @@ from app.models.product import Product
 from app.product.product_service import ProductService
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.dependencies.auth import get_current_user, require_role
-from uuid import UUID
+from app.interactions.interaction_service import InteractionService
+from app.models.interaction import InteractionType
+
 
 product_router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -28,13 +30,27 @@ async def get_products(
     service = ProductService(session)
     return await service.get_products(limit=limit, search=search, category=category)
 
+@product_router.post("/{product_id}/view", status_code=204)
+async def view_product(
+    product_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    interaction_service = InteractionService(session)
+    await interaction_service.log(
+        user_id=current_user.id,
+        product_id=product_id,
+        interaction_type=InteractionType.VIEW,
+    )
+
 @product_router.get("/{product_id}", response_model=ProductResponse, summary="Get product by ID")
 async def get_product(
     product_id: UUID,
     session: AsyncSession = Depends(get_db),
 ):
     service = ProductService(session)
-    return await service.get_product(product_id)
+    return await service.get_product(product_id=product_id)
+
 
 # ------------------------------------------------------------------
 # Seller

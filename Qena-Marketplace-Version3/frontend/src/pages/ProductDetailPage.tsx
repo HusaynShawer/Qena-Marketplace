@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/client'
 import ReviewForm from '../components/ReviewForm'
+import ProductCard from '../components/ProductCard'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,10 +14,23 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('details')
   const [adding, setAdding] = useState(false)
+
+  // You May Also Like
+  const [similar, setSimilar] = useState<any[]>([])
+  const [similarLoading, setSimilarLoading] = useState(true)
+
   const { addToCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
 
+  // Track product view for logged-in users
+  useEffect(() => {
+    if (user && id) {
+      api.post(`/recommendations/interactions?product_id=${id}&interaction_type=view`).catch(() => {})
+    }
+  }, [id, user])
+
+  // Fetch product + reviews
   useEffect(() => {
     Promise.all([
       api.get(`/products/${id}`),
@@ -26,6 +40,16 @@ export default function ProductDetailPage() {
       setReviews(r.data)
     }).catch(() => {})
       .finally(() => setLoading(false))
+  }, [id])
+
+  // Fetch "You May Also Like"
+  useEffect(() => {
+    if (!id) return
+    setSimilarLoading(true)
+    api.get(`/recommendations/similar/${id}?limit=8`)
+      .then(res => setSimilar(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setSimilar([]))
+      .finally(() => setSimilarLoading(false))
   }, [id])
 
   const handleAddToCart = async () => {
@@ -184,7 +208,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
           <div className="flex border-b">
             {['details', 'reviews'].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -257,7 +281,7 @@ export default function ProductDetailPage() {
                           <p className="text-gray-600 text-sm ml-10">{r.comment}</p>
                         )}
                         <p className="text-xs text-gray-400 ml-10 mt-1">
-                          {new Date(r.created_at).toLocaleDateString('ar-EG')}
+                          {new Date(r.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     ))}
@@ -267,6 +291,32 @@ export default function ProductDetailPage() {
             )}
           </div>
         </div>
+
+        {/* You May Also Like */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">✨ You May Also Like</h2>
+          {similarLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl shadow animate-pulse">
+                  <div className="h-40 bg-gray-200 rounded-t-xl" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : similar.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {similar.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No similar products found.</p>
+          )}
+        </section>
       </div>
     </div>
   )

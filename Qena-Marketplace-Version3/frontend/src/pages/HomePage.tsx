@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import api from '../api/client'
 import ProductCard from '../components/ProductCard'
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const categories = [
   { name: 'Electronics',       icon: '📱', color: 'from-blue-500 to-blue-600' },
@@ -23,19 +23,49 @@ const features = [
 ]
 
 export default function HomePage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  // Featured (fallback for guests)
   const [products, setProducts]   = useState<any[]>([])
   const [loading, setLoading]     = useState(true)
+
+  // Personalized recommendations (logged-in only)
+  const [recProducts, setRecProducts] = useState<any[]>([])
+  const [recLoading, setRecLoading]   = useState(false)
+
+  // Trending
+  const [trending, setTrending]     = useState<any[]>([])
+  const [trendLoading, setTrendLoading] = useState(true)
+
   const [search, setSearch]       = useState('')
   const [visible, setVisible]     = useState(false)
-  const navigate                   = useNavigate()
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 100)
-    fetch(`${API}/api/products?limit=8`)
-      .then(r => r.json())
-      .then(d => { setProducts(Array.isArray(d) ? d : []); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
+
+    // 1️⃣ Featured Products (always fetch as fallback)
+    api.get('/products?limit=8')
+      .then(res => setProducts(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false))
+
+    // 2️⃣ Trending (public — always show)
+    setTrendLoading(true)
+    api.get('/recommendations/trending?limit=10')
+      .then(res => setTrending(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setTrending([]))
+      .finally(() => setTrendLoading(false))
+
+    // 3️⃣ Personalized Recommendations (only if logged in)
+    if (user) {
+      setRecLoading(true)
+      api.get('/recommendations/?page=1&per_page=8')
+        .then(res => setRecProducts(Array.isArray(res.data) ? res.data : []))
+        .catch(() => setRecProducts([]))
+        .finally(() => setRecLoading(false))
+    }
+  }, [user])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,11 +76,9 @@ export default function HomePage() {
     <div className="page-enter">
       {/* ─── HERO ─── */}
       <section className="hero-gradient relative overflow-hidden min-h-[88vh] flex items-center">
-        {/* Decorative Blobs */}
         <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] rounded-full bg-orange-500/10 blur-3xl" />
         <div className="absolute bottom-[-150px] left-[-80px]  w-[450px] h-[450px] rounded-full bg-orange-400/8  blur-3xl" />
 
-        {/* Floating emojis */}
         <div className="absolute top-20 right-[15%] text-5xl animate-float  opacity-70">📱</div>
         <div className="absolute top-40 right-[8%]  text-4xl animate-float2 opacity-60 delay-200">👗</div>
         <div className="absolute bottom-32 right-[18%] text-5xl animate-float opacity-70 delay-400">🏡</div>
@@ -59,7 +87,6 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full py-20">
           <div className="max-w-2xl">
-            {/* Pill badge */}
             <div className={`inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-sm text-orange-300 mb-6 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
               🎉 New vendors joining every day!
@@ -75,7 +102,6 @@ export default function HomePage() {
               Discover amazing products from hundreds of local vendors in Qena. Great prices, fast delivery, real people.
             </p>
 
-            {/* Search */}
             <form onSubmit={handleSearch} className={`mb-8 transition-all duration-700 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <div className="flex gap-2 bg-white/10 backdrop-blur-sm rounded-2xl p-1.5 max-w-lg border border-white/20">
                 <input
@@ -91,7 +117,6 @@ export default function HomePage() {
               </div>
             </form>
 
-            {/* CTA Buttons */}
             <div className={`flex flex-wrap gap-3 mb-12 transition-all duration-700 delay-400 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <Link to="/products" className="btn-primary !py-3.5 !px-8">
                 Shop Now →
@@ -101,7 +126,6 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Stats */}
             <div className={`flex flex-wrap gap-8 transition-all duration-700 delay-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               {[
                 { n: '500+', l: 'Products' },
@@ -140,7 +164,7 @@ export default function HomePage() {
           <p className="text-slate-500">Explore our wide range of product categories</p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-          {categories.map(({ name, icon, color, q }, i) => (
+          {categories.map(({ name, icon, color }, i) => (
             <Link
               key={name}
               to={`/products?category=${encodeURIComponent(name)}`}
@@ -153,53 +177,142 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── FEATURED PRODUCTS ─── */}
-      <section className="py-16 bg-slate-50">
+      {/* ─── RECOMMENDED FOR YOU (logged in only) ─── */}
+      {user && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <h2 className="text-3xl font-black text-slate-800 mb-1">🎯 Recommended For You</h2>
+                <p className="text-slate-500">Handpicked based on your taste & activity</p>
+              </div>
+              <Link to="/products?sort=recommended" className="btn-secondary !py-2 !px-5 !text-sm hidden sm:flex">
+                View All →
+              </Link>
+            </div>
+
+            {recLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="card overflow-hidden">
+                    <div className="skeleton h-52" />
+                    <div className="p-4 space-y-2">
+                      <div className="skeleton h-4 rounded-lg" />
+                      <div className="skeleton h-3 rounded-lg w-2/3" />
+                      <div className="skeleton h-8 rounded-lg mt-3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recProducts.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 rounded-2xl">
+                <div className="text-5xl mb-3">🤔</div>
+                <p className="text-slate-500">Browse more products to get personalized picks!</p>
+                <Link to="/products" className="btn-primary mt-4 inline-flex">Explore Products</Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {recProducts.map((p, i) => (
+                  <div key={p.id} className={`animate-fade-in-up delay-${Math.min(i, 7) * 100}`}>
+                    <ProductCard product={p} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ─── TRENDING NOW (public) ─── */}
+      <section className="py-16 bg-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-3xl font-black text-slate-800 mb-1">Featured Products</h2>
-              <p className="text-slate-500">Hand-picked deals from our best vendors</p>
+              <h2 className="text-3xl font-black text-slate-800 mb-1">🔥 Trending Now</h2>
+              <p className="text-slate-500">What everyone is looking at this week</p>
             </div>
-            <Link to="/products" className="btn-secondary !py-2 !px-5 !text-sm hidden sm:flex">
+            <Link to="/products?sort=best_selling" className="btn-secondary !py-2 !px-5 !text-sm hidden sm:flex">
               View All →
             </Link>
           </div>
 
-          {loading ? (
+          {trendLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
+              {[...Array(4)].map((_, i) => (
                 <div key={i} className="card overflow-hidden">
                   <div className="skeleton h-52" />
                   <div className="p-4 space-y-2">
                     <div className="skeleton h-4 rounded-lg" />
                     <div className="skeleton h-3 rounded-lg w-2/3" />
-                    <div className="skeleton h-8 rounded-lg mt-3" />
                   </div>
                 </div>
               ))}
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">📦</div>
-              <p className="text-slate-500 text-lg">No products yet — be the first to list!</p>
-              <Link to="/register?role=seller" className="btn-primary mt-6 inline-flex">Start Selling</Link>
+          ) : trending.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-500">No trending items right now.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((p, i) => (
+              {trending.slice(0, 8).map((p, i) => (
                 <div key={p.id} className={`animate-fade-in-up delay-${Math.min(i, 7) * 100}`}>
                   <ProductCard product={p} />
                 </div>
               ))}
             </div>
           )}
-
-          <div className="text-center mt-10 sm:hidden">
-            <Link to="/products" className="btn-primary">View All Products →</Link>
-          </div>
         </div>
       </section>
+
+      {/* ─── FEATURED PRODUCTS (fallback for guests) ─── */}
+      {!user && (
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex justify-between items-end mb-10">
+              <div>
+                <h2 className="text-3xl font-black text-slate-800 mb-1">Featured Products</h2>
+                <p className="text-slate-500">Hand-picked deals from our best vendors</p>
+              </div>
+              <Link to="/products" className="btn-secondary !py-2 !px-5 !text-sm hidden sm:flex">
+                View All →
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="card overflow-hidden">
+                    <div className="skeleton h-52" />
+                    <div className="p-4 space-y-2">
+                      <div className="skeleton h-4 rounded-lg" />
+                      <div className="skeleton h-3 rounded-lg w-2/3" />
+                      <div className="skeleton h-8 rounded-lg mt-3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-6xl mb-4">📦</div>
+                <p className="text-slate-500 text-lg">No products yet — be the first to list!</p>
+                <Link to="/register?role=seller" className="btn-primary mt-6 inline-flex">Start Selling</Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.map((p, i) => (
+                  <div key={p.id} className={`animate-fade-in-up delay-${Math.min(i, 7) * 100}`}>
+                    <ProductCard product={p} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="text-center mt-10 sm:hidden">
+              <Link to="/products" className="btn-primary">View All Products →</Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ─── BECOME A SELLER ─── */}
       <section className="py-20 hero-gradient relative overflow-hidden">
