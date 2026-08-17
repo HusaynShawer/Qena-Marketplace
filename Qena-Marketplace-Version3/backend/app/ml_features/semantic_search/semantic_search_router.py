@@ -1,4 +1,4 @@
-from backend.app.ml_features.semantic_search.retriver import retrieve_similar_products
+from app.ml_features.semantic_search.retriver import retrieve_similar_products
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db

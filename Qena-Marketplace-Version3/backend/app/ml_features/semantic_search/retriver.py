@@ -1,6 +1,6 @@
 import numpy as np
-from backend.app.ml_features.semantic_search.embeddings import generate_embeddings
-from backend.app.ml_features.semantic_search.embeddings_repo import EmbeddingsRepo
+from app.ml_features.semantic_search.embeddings import generate_embeddings
+from app.ml_features.semantic_search.embeddings_repo import EmbeddingsRepo
 
 async def retrieve_similar_products(session, query: str, top_k: int = 5):
     query_embedding = (await generate_embeddings([query], input_type="search_query"))[0]

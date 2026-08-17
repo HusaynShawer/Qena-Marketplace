@@ -6,3 +6,4 @@ from .cart import Cart
 from .order import Order, OrderItem
 from .review import Review
 from .wallet import Wallet
+from .interaction import InteractionType, ProductInteraction
